@@ -432,7 +432,7 @@ export default function TestimoniesPage() {
                       />
                       {/* Media Badges */}
                       <div className="absolute top-3 right-3 flex gap-2">
-                        {testimony.videoUrl && (
+                        {(testimony?.videoUrl || testimony?.videoId) && (
                           <div className="bg-accent text-white p-2 rounded-full">
                             <Play size={16} fill="white" />
                           </div>
