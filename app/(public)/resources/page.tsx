@@ -37,6 +37,7 @@ export default function ResourcesPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [])

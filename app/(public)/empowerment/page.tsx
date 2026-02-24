@@ -14,6 +14,7 @@ export default function EmpowermentPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [])
@@ -53,7 +54,7 @@ export default function EmpowermentPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 by {article.author} • {formatDate(article.date)}
               </p>
-              <p className="text-sm text-foreground leading-relaxed mb-4 line-clamp-2">{article.content}</p>
+              <p className="text-sm text-foreground text-justify leading-relaxed mb-4 line-clamp-2">{article.content}</p>
               <Link href={`/empowerment/articles/${article.id}`} className="inline-flex items-center gap-2 text-primary hover:gap-4 transition-all font-medium text-sm">
                 Read More <ArrowRight size={16} />
               </Link>
@@ -137,10 +138,10 @@ export default function EmpowermentPage() {
         <section className="bg-linear-to-b from-primary/10 to-transparent py-12 md:py-16">
           <div className="max-w-6xl mx-auto px-4">
             <h1 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-4">
-              Women Empowerment
+              Christian Empowerment
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl">
-              Discover resources, articles, and events designed to empower and inspire women in their faith, leadership, and life journey.
+              Discover resources, articles, and events designed to empower and inspire christians in their faith, leadership, and life journey.
             </p>
           </div>
         </section>

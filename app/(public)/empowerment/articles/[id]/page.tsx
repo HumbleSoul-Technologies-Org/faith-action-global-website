@@ -178,7 +178,7 @@ export default function ArticleDetailsPage({ params }: PageProps) {
 
               {/* Article Content */}
               <div className="prose prose-invert max-w-none mb-12">
-                <p className="text-lg text-foreground leading-relaxed whitespace-pre-wrap">{article.content}</p>
+                <p className="text-lg text-justify text-foreground leading-relaxed whitespace-pre-wrap">{article.content}</p>
               </div>
 
               {/* Quick Reactions */}

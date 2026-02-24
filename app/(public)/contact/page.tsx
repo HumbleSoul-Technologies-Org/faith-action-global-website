@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
 import { Phone, Mail, MapPin, Clock } from 'lucide-react'
@@ -30,12 +30,14 @@ export default function ContactPage() {
     }, 3000)
   }
 
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' })}, [])
+
   return (
     <>
       <Navigation />
       <main className="min-h-screen bg-background">
         {/* Page Header */}
-        <section className="bg-gradient-to-b from-primary/10 to-transparent py-12 md:py-16">
+        <section className="bg-linear-to-b from-primary/10 to-transparent py-12 md:py-16">
           <div className="max-w-6xl mx-auto px-4">
             <h1 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-4">
               Get in Touch
