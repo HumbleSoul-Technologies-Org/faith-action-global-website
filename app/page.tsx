@@ -100,7 +100,7 @@ export default function Home() {
                     <span>{sermon.duration}</span>
                   </div>
                   <div className="inline-flex w-full items-center justify-end gap-2 text-primary hover:gap-4 transition-all font-medium mt-4">
-                     <Link href={`/resources/sermons/${sermon.id}`} className="inline-flex  items-center gap-2 text-primary hover:gap-4 transition-all font-medium mt-4">
+                     <Link href={`/resources/${sermon.id}`} className="inline-flex  items-center gap-2 text-primary hover:gap-4 transition-all font-medium mt-4">
                     Listen Now <ArrowRight size={16} />
                   </Link>
                  </div>
