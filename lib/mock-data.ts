@@ -55,6 +55,7 @@ export interface Testimony {
   audioUrl?: string
   date?: string
   category?: string
+  views?: number
   likes?: number
   reactions?: { [key: string]: number }
 }
@@ -241,10 +242,11 @@ export const testimonies: Testimony[] = [
     title: 'Found Hope Again',
     content: 'Our marriage was on the brink of collapse and we felt like we were out of options. Through the ministry\'s prayers, counseling, and the support of a caring community, hope gently restored us. We learned to forgive, rebuild trust, and rediscover a shared faith. Today our marriage is stronger, filled with grace, patience, and renewed purpose to serve God together.',
     image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=300&fit=crop',
-    videoId: 'jNQXAC9IVRw',
-    videoUrl: '/hope.mp4',
+    videoId: 'K1deLdDENAI',
+    videoUrl: '',
     date: '2024-02-10',
     category: 'Spiritual Renewal',
+    views: 342,
     likes: 124,
     reactions: { heart: 89, pray: 35, amen: 0 },
   },
@@ -299,6 +301,7 @@ Youtube: https://www.youtube.com/@savedbygracepodcast
     audioUrl: '/grace-testimony.mp3',
     date: '2024-02-05',
     category: 'Life Change',
+    views: 521,
     likes: 98,
     reactions: { heart: 72, pray: 26, amen: 0 },
   },
@@ -312,6 +315,7 @@ Youtube: https://www.youtube.com/@savedbygracepodcast
     videoUrl: '/hope.mp4',
     date: '2024-01-28',
     category: 'Purpose & Mission',
+    views: 428,
     likes: 156,
     reactions: { heart: 110, pray: 46, amen: 0 },
   },
