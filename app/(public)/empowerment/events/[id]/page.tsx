@@ -8,6 +8,10 @@ import { events } from '@/lib/mock-data'
 import { formatDate } from '@/lib/date-utils'
 import { SkeletonDetailPage } from '@/components/skeleton-card'
 import { Heart, ArrowLeft, Eye, Share2, MessageCircle, Send, MapPin, Clock } from 'lucide-react'
+import dynamic from 'next/dynamic'
+
+// Dynamically import Leaflet map to avoid SSR issues
+const MapComponent = dynamic(() => import('@/components/event-map'), { ssr: false })
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -106,7 +110,6 @@ export default function EventDetailsPage({ params }: PageProps) {
   }
 
   // Construct Google Maps iframe URL with coordinates
-  const mapsUrl = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.835!2d${event.longitude}!3d${event.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808581${Math.random().toString(16).slice(2, 10)}%3A${Math.random().toString(16).slice(2, 10)}!2s${encodeURIComponent(event.location)}!5e0!3m2!1sen!2sus!4v1707123456789`
 
   return (
     <>
@@ -223,16 +226,7 @@ export default function EventDetailsPage({ params }: PageProps) {
             <section className="mb-12">
               <h2 className="text-2xl font-bold text-foreground mb-6">Event Location</h2>
               <div className="bg-card rounded-lg border border-border overflow-hidden h-96">
-                <iframe
-                  src={`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.835!2d${event.longitude}!3d${event.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2s${encodeURIComponent(event.location)}!5e0!3m2!1sen!2sus!4v1707123456789`}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen={true}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title={`Map of ${event.title}`}
-                />
+                {event && <MapComponent latitude={event.latitude || 0} longitude={event.longitude || 0} title={event.title} location={event.location} />}
               </div>
             </section>
 

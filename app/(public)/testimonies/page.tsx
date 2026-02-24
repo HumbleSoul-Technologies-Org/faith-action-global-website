@@ -123,11 +123,7 @@ export default function TestimoniesPage() {
       value: 'audio',
       count: testimonies.filter((t) => t.audioUrl).length,
     },
-    {
-      label: 'Articles',
-      value: 'article',
-      count: testimonies.filter((t) => !t.videoUrl && !t.audioUrl).length,
-    },
+    
   ]
 
   return (
@@ -138,7 +134,7 @@ export default function TestimoniesPage() {
         <section className="bg-linear-to-b from-primary/10 to-transparent py-12 md:py-16">
           <div className="max-w-6xl mx-auto px-4">
             <h1 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-4">
-              Member Testimonies
+            Testimonies
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl">
               Read inspiring stories from community members whose lives have been transformed through faith, prayer, and service.
@@ -151,7 +147,7 @@ export default function TestimoniesPage() {
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
               <div className="flex flex-wrap gap-3 items-center">
-                <span className="text-sm font-semibold text-muted-foreground">Filter by:</span>
+                {/* <span className="text-sm font-semibold text-muted-foreground">Filter by:</span> */}
                 <div className="flex flex-wrap gap-2">
                   {filterOptions.map((option) => (
                     <button
@@ -170,12 +166,7 @@ export default function TestimoniesPage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => setShowForm(true)}
-                className="px-6 py-2 bg-primary text-primary-foreground rounded-full font-medium hover:bg-opacity-90 transition-all"
-              >
-                Share Your Testimony
-              </button>
+               
             </div>
           </div>
         </section>
@@ -490,7 +481,7 @@ export default function TestimoniesPage() {
             <p className="text-lg text-muted-foreground mb-8">
               Do you have a testimony? We'd love to hear how God is working in your life. Share your story with our community.
             </p>
-            <button className="px-8 py-3 bg-primary text-primary-foreground rounded-md hover:bg-opacity-90 transition-all font-medium">
+            <button onClick={() => setShowForm(true)} className="px-8 py-3 bg-primary text-primary-foreground rounded-md hover:bg-opacity-90 transition-all font-medium">
               Submit Your Testimony
             </button>
           </div>

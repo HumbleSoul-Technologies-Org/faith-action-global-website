@@ -133,12 +133,12 @@ export default function Home() {
             <div className="flex justify-between items-center mb-12">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary">Testimony Hub </h2>
               <Link href="/testimonies" className="text-primary hover:underline font-medium">
-                Read More
+                View More
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {testimonies.slice(0, 3).map((testimony) => (
-                <div key={testimony.id} className="bg-white rounded-lg border border-border p-6 hover:shadow-lg transition-shadow">
+                <Link href={`/testimonies/${testimony.id}`} key={testimony.id} className="bg-white rounded-lg border border-border p-6 hover:shadow-lg transition-shadow">
                   {testimony.image && (
                     <img
                       src={testimony.image}
@@ -149,7 +149,7 @@ export default function Home() {
                   <h3 className="text-lg font-bold text-foreground mb-2">{testimony.title}</h3>
                   <p className="text-sm text-muted-foreground mb-4">{testimony.name}</p>
                   <p className="text-sm text-foreground leading-relaxed line-clamp-3">{testimony.content}</p>
-                </div>
+                </Link >
               ))}
             </div>
           </div>
