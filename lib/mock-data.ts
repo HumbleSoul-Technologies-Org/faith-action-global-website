@@ -61,6 +61,7 @@ export interface Testimony {
   category?: string
   views?: number
   likes?: number
+  shares?: number
   reactions?: { [key: string]: number }
 }
 
@@ -74,6 +75,7 @@ export interface Article {
   image?: string
   views?: number
   likes?: number
+  shares?: number
   reactions?: { [key: string]: number }
 }
 
@@ -96,6 +98,7 @@ export interface Event {
   longitude?: number
   views?: number
   likes?: number
+  shares?: number
   reactions?: { [key: string]: number }
 }
 

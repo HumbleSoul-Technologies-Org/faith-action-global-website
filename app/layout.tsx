@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Playfair_Display, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/lib/auth-context'
+import QueryProvider from '@/components/query-provider'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -40,10 +41,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${_playfair.variable} ${_inter.variable}`}>
       <body className="font-sans antialiased">
-        <AuthProvider>
-          {children}
-          <Analytics />
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+            <Analytics />
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   )

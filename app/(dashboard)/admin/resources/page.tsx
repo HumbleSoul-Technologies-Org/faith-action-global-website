@@ -611,15 +611,31 @@ export default function ResourcesPage() {
       </div>
 
       {editingQuote && (
-        <div className="bg-card rounded-lg border border-border p-6 mb-6">
-          <h3 className="text-lg font-bold mb-4">{editingQuote.id.length > 10 ? 'Edit Quote' : 'New Quote'}</h3>
-          <div className="space-y-4">
-            <textarea placeholder="Quote text" value={editingQuote.text} onChange={(e) => setEditingQuote({ ...editingQuote, text: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white h-28" />
-            <input type="text" placeholder="Author" value={editingQuote.author} onChange={(e) => setEditingQuote({ ...editingQuote, author: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white" />
-            <input type="text" placeholder="Bible Passage" value={editingQuote.passage} onChange={(e) => setEditingQuote({ ...editingQuote, passage: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white" />
-            <div className="flex gap-3"><button onClick={() => { if (quotes.some((q) => q.id === editingQuote.id)) { updateQuote(editingQuote.id, editingQuote) } else { addQuote(editingQuote) } setEditingQuote(null) }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">Save</button><button onClick={() => setEditingQuote(null)} className="px-4 py-2 border rounded-lg">Cancel</button></div>
-          </div>
-        </div>
+        <Dialog open={!!editingQuote} onOpenChange={(open) => { if (!open) setEditingQuote(null) }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingQuote.id.length > 10 ? 'Edit Quote' : 'New Quote'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Quote</label>
+                <textarea placeholder="Quote text" value={editingQuote.text} onChange={(e) => setEditingQuote({ ...editingQuote, text: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white h-28" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Author</label>
+                <input type="text" placeholder="Author" value={editingQuote.author} onChange={(e) => setEditingQuote({ ...editingQuote, author: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg bg-white" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Scripture</label>
+                <input type="text" placeholder="Bible Passage" value={editingQuote.passage} onChange={(e) => setEditingQuote({ ...editingQuote, passage: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg bg-white" />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => { if (quotes.some((q) => q.id === editingQuote.id)) { updateQuote(editingQuote.id, editingQuote) } else { addQuote(editingQuote) } setEditingQuote(null) }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex-1">Save</button>
+                <button onClick={() => setEditingQuote(null)} className="px-4 py-2 border rounded-lg flex-1">Cancel</button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -670,16 +686,35 @@ export default function ResourcesPage() {
       </div>
 
       {editingDevotional && (
-        <div className="bg-card rounded-lg border border-border p-6 mb-6">
-          <h3 className="text-lg font-bold mb-4">{editingDevotional.id.length > 10 ? 'Edit Devotional' : 'New Devotional'}</h3>
-          <div className="space-y-4">
-            <input type="text" placeholder="Title" value={editingDevotional.title} onChange={(e) => setEditingDevotional({ ...editingDevotional, title: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white" />
-            <input type="text" placeholder="Scripture Reference" value={editingDevotional.scripture} onChange={(e) => setEditingDevotional({ ...editingDevotional, scripture: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white" />
-            <textarea placeholder="Reflection" value={editingDevotional.reflection} onChange={(e) => setEditingDevotional({ ...editingDevotional, reflection: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white h-28" />
-            <textarea placeholder="Prayer" value={editingDevotional.prayer} onChange={(e) => setEditingDevotional({ ...editingDevotional, prayer: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white h-28" />
-            <div className="flex gap-3"><button onClick={() => { if (devotionals.some((d) => d.id === editingDevotional.id)) { updateDevotional(editingDevotional.id, editingDevotional) } else { addDevotional(editingDevotional) } setEditingDevotional(null) }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">Save</button><button onClick={() => setEditingDevotional(null)} className="px-4 py-2 border rounded-lg">Cancel</button></div>
-          </div>
-        </div>
+        <Dialog open={!!editingDevotional} onOpenChange={(open) => { if (!open) setEditingDevotional(null) }}>
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingDevotional.id.length > 10 ? 'Edit Devotional' : 'New Devotional'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Title</label>
+                <input type="text" placeholder="Title" value={editingDevotional.title} onChange={(e) => setEditingDevotional({ ...editingDevotional, title: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Scripture Reference</label>
+                <input type="text" placeholder="Scripture Reference" value={editingDevotional.scripture} onChange={(e) => setEditingDevotional({ ...editingDevotional, scripture: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Reflection</label>
+                <textarea placeholder="Reflection" value={editingDevotional.reflection} onChange={(e) => setEditingDevotional({ ...editingDevotional, reflection: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white h-28" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Prayer</label>
+                <textarea placeholder="Prayer" value={editingDevotional.prayer} onChange={(e) => setEditingDevotional({ ...editingDevotional, prayer: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white h-28" />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => { if (devotionals.some((d) => d.id === editingDevotional.id)) { updateDevotional(editingDevotional.id, editingDevotional) } else { addDevotional(editingDevotional) } setEditingDevotional(null) }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex-1">Save</button>
+                <button onClick={() => setEditingDevotional(null)} className="px-4 py-2 border rounded-lg flex-1">Cancel</button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
