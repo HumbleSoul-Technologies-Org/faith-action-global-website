@@ -8,10 +8,12 @@ export interface Sermon {
   duration: string
   description: string
   passage: string
+  image?: string
   audioUrl?: string
   videoId?: string
   videoUrl?: string
   likes?: number
+  views?: number
   reactions?: { [key: string]: number }
 }
 
@@ -29,6 +31,7 @@ export interface Quote {
   passage: string
   views?: number
   likes?: number
+  shares?: number
   reactions?: { [key: string]: number }
 }
 
@@ -41,6 +44,7 @@ export interface Devotional {
   prayer: string
   views?: number
   likes?: number
+  shares?: number
   reactions?: { [key: string]: number }
 }
 
@@ -137,10 +141,11 @@ export const sermons: Sermon[] = [
     duration: '1hr: 32 Mins',
     description: 'An inspiring message about trusting God in difficult times and finding strength through faith.',
     passage: 'Hebrews 11:1',
+    image: '/placeholder.jpg',
     videoId: 'hMMl6KqQY_4',
     likes: 87,
+    views: 342,
     reactions: { heart: 62, amen: 25, inspiring: 0 },
-   
   },
   {
     id: '2',
@@ -150,8 +155,10 @@ export const sermons: Sermon[] = [
     duration: '38 min',
     description: 'Exploring the greatest commandment and how to show genuine love to those around us.',
     passage: 'Matthew 22:37-40',
+    image: '/placeholder.jpg',
     audioUrl: '/audio_sermon.mp3',
     likes: 64,
+    views: 189,
     reactions: { heart: 48, amen: 16, inspiring: 0 },
   },
   {
@@ -162,8 +169,10 @@ export const sermons: Sermon[] = [
     duration: '42 min',
     description: 'Finding your calling and living a life aligned with God\'s plan.',
     passage: 'Ephesians 2:10',
+    image: '/placeholder.jpg',
     videoUrl: '/sermon.mp4',
     likes: 102,
+    views: 234,
     reactions: { heart: 75, amen: 27, inspiring: 0 },
   },
 ]
@@ -177,6 +186,7 @@ export const quotes: Quote[] = [
     passage: 'John 3:16',
     views: 234,
     likes: 145,
+    shares: 42,
     reactions: { love: 98, inspire: 47, pray: 0 },
   },
   {
@@ -186,6 +196,7 @@ export const quotes: Quote[] = [
     passage: 'John 16:33',
     views: 189,
     likes: 112,
+    shares: 28,
     reactions: { love: 76, inspire: 36, pray: 0 },
   },
   {
@@ -195,6 +206,7 @@ export const quotes: Quote[] = [
     passage: 'Colossians 3:12',
     views: 267,
     likes: 178,
+    shares: 35,
     reactions: { love: 124, inspire: 54, pray: 0 },
   },
   {
@@ -204,6 +216,7 @@ export const quotes: Quote[] = [
     passage: 'Psalm 27:1',
     views: 156,
     likes: 98,
+    shares: 19,
     reactions: { love: 65, inspire: 33, pray: 0 },
   },
 ]
@@ -219,6 +232,7 @@ export const devotionals: Devotional[] = [
     prayer: 'Help me to trust in Your perfect timing, Lord. Guide my steps and help me to have faith in Your plan for my life.',
     views: 312,
     likes: 203,
+    shares: 56,
     reactions: { love: 138, inspire: 65, pray: 0 },
   },
   {
@@ -230,6 +244,7 @@ export const devotionals: Devotional[] = [
     prayer: 'Lord, help me to find strength in my weakness. Use my struggles to draw me closer to You.',
     views: 278,
     likes: 167,
+    shares: 43,
     reactions: { love: 112, inspire: 55, pray: 0 },
   },
 ]

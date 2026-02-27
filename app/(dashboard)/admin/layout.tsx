@@ -1,5 +1,6 @@
 import { AdminProvider } from '@/lib/admin-context'
 import AdminSidebar from '@/components/admin-sidebar'
+import DashboardHeader from '@/components/dashboard-header'
 
 export default function DashboardLayout({
   children,
@@ -11,7 +12,13 @@ export default function DashboardLayout({
       <div className="flex h-screen bg-background">
         <AdminSidebar />
         <main className="flex-1 overflow-auto">
-          <div className="p-4 md:p-8">
+          {/* Dashboard header visible only on medium+ screens */}
+            <div className="hidden md:block">
+              <DashboardHeader />
+            </div>
+          <div className=" md:p-8">
+            
+
             {children}
           </div>
         </main>

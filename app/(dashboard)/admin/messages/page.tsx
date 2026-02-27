@@ -18,9 +18,9 @@ export default function MessagesPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="p-2 hover:bg-muted rounded-lg transition">
+            {/* <Link href="/admin" className="p-2 hover:bg-muted rounded-lg transition">
               <ArrowLeft size={20} className="text-foreground" />
-            </Link>
+            </Link> */}
             <div>
               <h1 className="text-3xl font-serif font-bold text-primary">Messages</h1>
               <p className="text-sm text-muted-foreground">{unreadCount} unread</p>
@@ -33,7 +33,7 @@ export default function MessagesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Messages List */}
         <div className="lg:col-span-1">
-          <div className="bg-card rounded-lg border border-border divide-y divide-border max-h-[600px] overflow-y-auto">
+          <div className="bg-card rounded-lg border border-border divide-y divide-border max-h-150 overflow-y-auto">
             {messages.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
                 No messages

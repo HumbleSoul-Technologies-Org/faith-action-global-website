@@ -16,7 +16,7 @@ export default function DashboardHeader() {
 
   return (
     <>
-      <header className="bg-card border-b border-border sticky top-0 z-40">
+      <header className="bg-card border-b w-full border-border sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           {/* Left Side - Branding */}
           <div className="flex items-center gap-4">
@@ -27,7 +27,7 @@ export default function DashboardHeader() {
           {/* Right Side - Icons and Actions */}
           <div className="flex items-center gap-4">
             {/* Messages Icon */}
-            <Link href="/dashboard/messages" className="relative p-2 hover:bg-muted rounded-lg transition">
+            <Link href="/admin/messages" className="relative p-2 hover:bg-muted rounded-lg transition">
               <Mail size={20} className="text-foreground" />
               {unreadMessages > 0 && (
                 <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-accent rounded-full">

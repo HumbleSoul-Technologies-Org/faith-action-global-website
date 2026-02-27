@@ -437,7 +437,7 @@ export default function ResourcesPage() {
               key={quote.id}
               className="bg-linaer-to-r from-primary/5 to-accent/5 rounded-lg border border-border p-8 hover:shadow-lg transition-shadow"
             >
-              <div className="flex items-start gap-4">s
+              <div className="flex items-start gap-4">
                 <Quote className="text-primary mt-1 shrink-0" size={24} />
                 <div className="flex-1">
                   <p className="text-lg text-foreground mb-4 leading-relaxed italic">"{quote.text}"</p>
