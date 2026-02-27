@@ -1,3 +1,5 @@
+'use client'
+
 import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
 import { Users, Target, Heart, BookOpen } from 'lucide-react'
