@@ -15,9 +15,9 @@ export interface Sermon {
   description: string
   passage: string
   image?: string
-  audioUrl?: MediaUrl | {url:string, public_id: string} | string
+  audioUrl?: MediaUrl  
   videoId?: string
-  videoUrl?: MediaUrl | {url:string, public_id: string} | string
+  videoUrl?: MediaUrl 
   likes?: number
   views?: number
   reactions?: { [key: string]: number }
@@ -55,19 +55,19 @@ export interface Devotional {
 }
 
 export interface Testimony {
-  id: string
+  _id: string
   name: string
   title: string
   content: string
-  image?: string
-  videoUrl?: MediaUrl | string
+  image?: { url: string; public_id: string }
+  videoUrl?: MediaUrl  
   videoId?: string
-  audioUrl?: MediaUrl | string
+  audioUrl?: MediaUrl  
   date?: string
   category?: string
-  views?: number
-  likes?: number
-  shares?: number
+  views?: [any]
+  likes?: [any]
+  shares?: [any]
   reactions?: { [key: string]: number }
 }
 

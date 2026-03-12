@@ -1,37 +1,63 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useAdmin } from '@/lib/admin-context'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Trash2, Plus, Edit2, Heart, Music, Play, Upload, X, Eye, Share2, MoreVertical } from 'lucide-react'
 import { Testimony } from '@/lib/mock-data'
 import dynamic from 'next/dynamic'
+import { uploadToCloudinary } from '@/lib/api'
+import { apiRequest } from '@/lib/query-client'
+import axios from 'axios'
+import { useQuery } from '@tanstack/react-query'
+import { set } from 'react-hook-form'
 
 const ReactPlayer = dynamic(() => import('react-player'), { ssr: false })
 
 export default function TestimoniesManager() {
-  const { testimonies, addTestimony, updateTestimony, deleteTestimony } = useAdmin()
+  // const {   addTestimony, updateTestimony, deleteTestimony } = useAdmin()
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState<'all' | 'video' | 'audio' >('all')
   const [editing, setEditing] = useState<Testimony | null>(null)
   const [hoveredCard, setHoveredCard] = useState<string | null>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [viewDetails, setViewDetails] = useState<Testimony | null>(null)
+  const [testimonies, setTestimonies] = useState<Testimony[] | any[]>([])
   const [formData, setFormData] = useState({
     name: '',
     title: '',
     content: '',
     category: '',
     videoId: '',
-    videoUrl: '',
-    audioUrl: '',
+    videoUrl: {url: '', public_id: ''},
+    audioUrl: {url: '', public_id: ''},
   })
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null)
+  const [selectedAudio, setSelectedAudio] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [selectedTestimony, setSelectedTestimony] = useState<any | null>(null)
+
+  const [videoProgress, setVideoProgress] = useState(0)
+  const [audioProgress, setAudioProgress] = useState(0)
+  const [imageProgress, setImageProgress] = useState(0)
   const [filePreviews, setFilePreviews] = useState({
     imagePreview: '',
     videoPreview: '',
     audioPreview: '',
   })
+
+  const { data: fetchedTestimonies, refetch } = useQuery<any[]>({
+    queryKey: ['testimony','all'],
+     
+  })
+
+  useEffect(() => { 
+    if (fetchedTestimonies) {
+     setTestimonies(fetchedTestimonies)
+    }
+  }, [fetchedTestimonies])
 
   // Create preview URLs
   useEffect(() => {
@@ -67,39 +93,124 @@ export default function TestimoniesManager() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'audio') => {
     const file = e.target.files?.[0]
+    const reader = new FileReader();
+    reader.onload = () => {
+     
+      setSelectedImage(file as File) // Store the file for uploading;
+      
+    };
+
     if (file) {
       if (type === 'image') {
         setSelectedImage(file)
       } else if (type === 'video') {
+        setSelectedVideo(file)
         const url = URL.createObjectURL(file)
         setFilePreviews((prev) => ({ ...prev, videoPreview: url }))
       } else if (type === 'audio') {
+        setSelectedAudio(file)
         const url = URL.createObjectURL(file)
         setFilePreviews((prev) => ({ ...prev, audioPreview: url }))
       }
     }
   }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const newTestimony: Testimony = {
-      id: editing?.id || Date.now().toString(),
-      ...formData,
-      image: filePreviews.imagePreview || editing?.image || '',
-      views: editing?.views || 0,
-      likes: editing?.likes || 0,
-      shares: editing?.shares || 0,
-      reactions: editing?.reactions || {},
-    }
+    setIsUploading(true)
+    setUploadError(null)
+    setVideoProgress(0)
+    setAudioProgress(0)
+    setImageProgress(0)
 
-    if (editing && testimonies.some((t) => t.id === editing.id)) {
-      updateTestimony(editing.id, newTestimony)
-    } else {
-      addTestimony(newTestimony)
-    }
+    
 
-    resetForm()
-    setShowForm(false)
+     
+
+    try {
+      // build form data copy, we'll set image separately
+      const updatedForm = { ...formData }
+
+      // determine final image URL
+      let finalImageUrl: string | undefined
+
+      if (selectedImage) {
+        // new file selected, upload it
+        try {
+          const imgResp = await uploadToCloudinary(selectedImage, 'auto', setImageProgress)
+          finalImageUrl = imgResp.url
+        } catch (err) {
+          setUploadError('Failed to upload image. Please try again.')
+          setIsUploading(false)
+          return
+        }
+      } else if (editing?.image) {
+        // keep existing URL when editing
+        finalImageUrl = editing.image as unknown as string
+      } else if (filePreviews.imagePreview) {
+        finalImageUrl = filePreviews.imagePreview
+      }
+
+      if (finalImageUrl) {
+        ;(updatedForm as any).image = finalImageUrl
+      }
+
+      // Upload video
+      if (selectedVideo) {
+        try {
+          const videoResp = await uploadToCloudinary(selectedVideo, 'video', setVideoProgress)
+          ;(updatedForm as any).videoUrl = { url: videoResp.url, public_id: videoResp.publicId }
+        } catch (err) {
+          setUploadError('Failed to upload video. Please try again.')
+          setIsUploading(false)
+          return
+        }
+      }
+
+      // Upload audio
+      if (selectedAudio) {
+        try {
+          const audioResp = await uploadToCloudinary(selectedAudio, 'auto', setAudioProgress)
+          ;(updatedForm as any).audioUrl = { url: audioResp.url, public_id: audioResp.publicId }
+        } catch (err) {
+          setUploadError('Failed to upload audio. Please try again.')
+          setIsUploading(false)
+          return
+        }
+      }
+
+      let imageData = null
+
+      if (selectedImage) {
+        imageData = await uploadFileToServer(selectedImage)
+      }
+      
+      
+      const storedImage = { url: selectedTestimony.image?.url , public_id: selectedTestimony.image?.public_id }
+      const newTestimony: any = {
+        ...updatedForm,
+        image: imageData || storedImage,
+      }
+
+       
+
+      if (editing && testimonies.some((t) => t._id === editing._id)) {
+        await apiRequest('PUT', `/testimony/update/${editing._id}`, newTestimony)
+        setTestimonies((prev) => prev.map((t) => (t._id === editing._id ? { ...t, ...newTestimony } : t)))
+
+      } else {
+        await apiRequest('POST', '/testimony/create', newTestimony)
+        setTestimonies((prev) => [newTestimony, ...prev])  
+        
+      }
+
+      resetForm()
+      setShowForm(false)
+    } catch (error) {
+      console.error('Error submitting testimony:', error)
+      setUploadError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const resetForm = () => {
@@ -109,29 +220,68 @@ export default function TestimoniesManager() {
       content: '',
       category: '',
       videoId: '',
-      videoUrl: '',
-      audioUrl: '',
+      videoUrl: {url: '', public_id: ''},
+      audioUrl: {url: '', public_id: ''},
     })
     setSelectedImage(null)
+    setSelectedVideo(null)
+    setSelectedAudio(null)
     setEditing(null)
     setFilePreviews({ imagePreview: '', videoPreview: '', audioPreview: '' })
+    setVideoProgress(0)
+    setAudioProgress(0)
+    setImageProgress(0)
+    setUploadError(null)
+    setIsUploading(false)
   }
 
-  const openEditForm = (testimony: Testimony) => {
+  const openEditForm = (testimony: any) => {
     setFormData({
       name: testimony.name,
       title: testimony.title,
-      content: testimony.content,
+      content: testimony.description,
       category: testimony.category || '',
       videoId: testimony.videoId || '',
-      videoUrl: testimony.videoUrl || '',
-      audioUrl: testimony.audioUrl || '',
+      videoUrl: testimony.videoUrl || {url: '', public_id: ''},
+      audioUrl: testimony.audioUrl || {url: '', public_id: ''},
     })
     if (testimony.image) {
-      setFilePreviews((prev) => ({ ...prev, imagePreview: testimony.image || '' }))
+      setFilePreviews((prev) => ({ ...prev, imagePreview: testimony?.image?.url || '' }))
     }
     setEditing(testimony)
     setShowForm(true)
+  }
+
+  // upload the selected image to the server
+  const uploadFileToServer = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const { data } = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/testimony/upload/image`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+      return data;
+    } catch (error) {
+      console.error(error);
+      return { url: "", public_id: "" };
+    }
+  };
+
+  const deleteTestimony = async (testimony: any) => { 
+    try {
+      await apiRequest('DELETE', `/testimony/delete/${testimony}`)
+      setTestimonies((prev) => prev.filter((t) => t._id !== testimony))
+    } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+    }
   }
 
   return (
@@ -146,7 +296,7 @@ export default function TestimoniesManager() {
       <section className="py-8 md:py-12">
         <div className="max-w-6xl mx-auto px-4">
           {/* Filter Buttons */}
-          <div className="flex flex-wrap gap-3 mb-8">
+          <div className="flex w-full flex-wrap gap-3 mb-8">
             {[
               { label: 'All', value: 'all' as const, count: counts.all },
               { label: 'Videos', value: 'video' as const, count: counts.video },
@@ -165,11 +315,9 @@ export default function TestimoniesManager() {
                 {btn.label} <span className="text-sm opacity-75">({btn.count})</span>
               </button>
             ))}
-          </div>
 
-          {/* Add Testimony Button */}
-          <div className="mb-8">
-            <button
+            <span className="mx-1 flex-1 text-muted-foreground">|</span>
+             <button
               onClick={() => {
                 resetForm()
                 setShowForm(true)
@@ -178,7 +326,10 @@ export default function TestimoniesManager() {
             >
               <Plus size={18} /> Add Testimony
             </button>
+           
           </div>
+
+         
         </div>
       </section>
 
@@ -306,7 +457,7 @@ export default function TestimoniesManager() {
                   <input
                     type="url"
                     name="videoUrl"
-                    value={formData.videoUrl}
+                    value={formData.videoUrl.url}
                     onChange={handleFormChange}
                     placeholder="https://example.com/video.mp4"
                     className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
@@ -318,12 +469,19 @@ export default function TestimoniesManager() {
                     <video src={filePreviews.videoPreview} controls className="max-w-full h-32 rounded-lg object-cover" />
                   </div>
                 )}
-              </div>
-            </div>
 
-            {/* Audio URL */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Audio URL</label>
+                {isUploading && selectedVideo && videoProgress > 0 && (
+                  <div className="space-y-2 mt-2">
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs font-medium text-foreground">Video upload</p>
+                      <p className="text-xs font-medium text-foreground">{videoProgress}%</p>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-all duration-200" style={{ width: `${videoProgress}%` }} />
+                    </div>
+                  </div>
+                )}
+                </div>
               <div className="space-y-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-2 block">Upload Audio File</label>
@@ -343,7 +501,7 @@ export default function TestimoniesManager() {
                   <input
                     type="url"
                     name="audioUrl"
-                    value={formData.audioUrl}
+                    value={formData.audioUrl.url}
                     onChange={handleFormChange}
                     placeholder="https://example.com/audio.mp3"
                     className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
@@ -355,6 +513,18 @@ export default function TestimoniesManager() {
                     <audio src={filePreviews.audioPreview} controls className="w-full" />
                   </div>
                 )}
+
+                {isUploading && selectedAudio && audioProgress > 0 && (
+                  <div className="space-y-2 mt-2">
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs font-medium text-foreground">Audio upload</p>
+                      <p className="text-xs font-medium text-foreground">{audioProgress}%</p>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-all duration-200" style={{ width: `${audioProgress}%` }} />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -364,7 +534,7 @@ export default function TestimoniesManager() {
                 type="submit"
                 className="flex-1 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition-all font-medium"
               >
-                {editing ? 'Update Testimony' : 'Submit Testimony'}
+                {isUploading ? 'Uploading...' : (editing ? 'Update Testimony' : 'Submit Testimony')}
               </button>
               <button
                 type="button"
@@ -389,11 +559,11 @@ export default function TestimoniesManager() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {filteredTestimonies.map((testimony) => (
+              {filteredTestimonies.map((testimony:any,i:number) => (
                 <div
-                  key={testimony.id}
+                  key={i}
                   className="relative h-96 bg-muted rounded-lg border border-border overflow-hidden group"
-                  onMouseEnter={() => setHoveredCard(testimony.id)}
+                  onMouseEnter={() => setHoveredCard(testimony._id)}
                   onMouseLeave={() => {
                     setHoveredCard(null)
                     setOpenMenu(null)
@@ -402,14 +572,14 @@ export default function TestimoniesManager() {
                   {/* Image */}
                   {testimony.image && (
                     <img
-                      src={testimony.image}
+                      src={testimony.image.url || '/no-image.jpg'}
                       alt={testimony.name}
                       className="w-full h-full object-fill"
                     />
                   )}
 
                   {/* Hover Overlay */}
-                  {hoveredCard === testimony.id && (
+                  {hoveredCard === testimony._id && (
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col justify-between p-4">
                       {/* Top Section with Menu */}
                       <div className="flex justify-between items-start">
@@ -426,21 +596,21 @@ export default function TestimoniesManager() {
                         {/* 3-Dot Menu */}
                         <div className="relative">
                           <button
-                            onClick={() => setOpenMenu(openMenu === testimony.id ? null : testimony.id)}
-                            className="p-2 hover:bg-white/20 rounded-lg transition-colors text-white"
+                            onClick={() => setOpenMenu(openMenu === testimony._id ? null : testimony._id)}
+                            className="p-2 hover:bg-white/20 rounded-lg transition-colors text-green-500"
                           >
                             <MoreVertical size={18} />
                           </button>
 
                           {/* Dropdown Menu */}
-                          {openMenu === testimony.id && (
+                          {openMenu === testimony._id && (
                             <div className="absolute right-0 mt-2 w-40 bg-card border border-border rounded-lg shadow-lg z-50">
                               <button
                                 onClick={() => {
                                   setViewDetails(testimony)
                                   setOpenMenu(null)
                                 }}
-                                className="w-full px-4 py-2 text-left hover:bg-muted transition-colors text-sm text-foreground border-b border-border"
+                                className="w-full px-4 py-2 text-left hover:bg-muted rounded-md transition-colors text-sm text-foreground border-b border-border"
                               >
                                 View Details
                               </button>
@@ -448,14 +618,15 @@ export default function TestimoniesManager() {
                                 onClick={() => {
                                   openEditForm(testimony)
                                   setOpenMenu(null)
+                                  setSelectedTestimony(testimony)
                                 }}
-                                className="w-full px-4 py-2 text-left hover:bg-muted transition-colors text-sm text-foreground border-b border-border"
+                                className="w-full px-4 py-2 text-left hover:bg-muted rounded-md transition-colors text-sm text-foreground border-b border-border"
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => {
-                                  deleteTestimony(testimony.id)
+                                  deleteTestimony(testimony._id)
                                   setOpenMenu(null)
                                 }}
                                 className="w-full px-4 py-2 text-left hover:bg-destructive/10 transition-colors text-sm text-destructive"
@@ -471,17 +642,17 @@ export default function TestimoniesManager() {
                       <div className="flex gap-4 text-white text-sm">
                         {testimony.views !== undefined && (
                           <span className="flex items-center gap-1">
-                            <Eye size={14} /> {testimony.views}
+                            <Eye size={14} /> {testimony.views?.length || 0}
                           </span>
                         )}
                         {testimony.likes !== undefined && (
                           <span className="flex items-center gap-1">
-                            <Heart size={14} /> {testimony.likes}
+                            <Heart size={14} /> {testimony.likes?.length || 0}
                           </span>
                         )}
                         {testimony.shares !== undefined && (
                           <span className="flex items-center gap-1">
-                            <Share2 size={14} /> {testimony.shares}
+                            <Share2 size={14} /> {testimony.shares?.length || 0}
                           </span>
                         )}
                       </div>
@@ -491,7 +662,7 @@ export default function TestimoniesManager() {
                   {/* Media Badges */}
                   {!hoveredCard && (
                     <div className="absolute top-3 right-3 flex gap-2">
-                      {(testimony?.videoUrl || testimony?.videoId) && (
+                      {(!!testimony?.videoUrl  ) && (
                         <div className="bg-accent text-white p-2 rounded-full">
                           <Play size={16} fill="white" />
                         </div>
@@ -499,6 +670,11 @@ export default function TestimoniesManager() {
                       {testimony.audioUrl && (
                         <div className="bg-secondary text-foreground p-2 rounded-full">
                           <Music size={16} />
+                        </div>
+                      )}
+                      {(testimony?.videoId !=="") && (
+                        <div className="bg-accent text-white p-2 rounded-full">
+                          <Play size={16} fill="white" />
                         </div>
                       )}
                     </div>
@@ -520,7 +696,7 @@ export default function TestimoniesManager() {
               {/* Image */}
               {viewDetails.image && (
                 <img
-                  src={viewDetails.image}
+                  src={viewDetails.image?.url || '/no-image.jpg'}
                   alt={viewDetails.name}
                   className="w-full h-96 object-fill rounded-lg"
                 />
@@ -534,24 +710,27 @@ export default function TestimoniesManager() {
                   <p className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full w-fit">
                     {viewDetails.category}
                   </p>
+                  
                 )}
+                <p className=" text-justify mt-3 text-muted-foreground text-sm mb-2">{viewDetails?.description}</p>
+
               </div>
 
               {/* Engagement Metrics */}
               <div className="flex gap-6 text-sm text-muted-foreground border-y border-border py-4">
                 {viewDetails.views !== undefined && (
                   <span className="flex items-center gap-2">
-                    <Eye size={16} /> {viewDetails.views} views
+                    <Eye size={16} /> {viewDetails.views?.length} views
                   </span>
                 )}
                 {viewDetails.likes !== undefined && (
                   <span className="flex items-center gap-2">
-                    <Heart size={16} /> {viewDetails.likes} likes
+                    <Heart size={16} /> {viewDetails.likes?.length} likes
                   </span>
                 )}
                 {viewDetails.shares !== undefined && (
                   <span className="flex items-center gap-2">
-                    <Share2 size={16} /> {viewDetails.shares} shares
+                    <Share2 size={16} /> {viewDetails.shares?.length} shares
                   </span>
                 )}
               </div>
@@ -573,7 +752,7 @@ export default function TestimoniesManager() {
                   ) : (
                     <div className="w-full rounded-lg overflow-hidden bg-black">
                       <ReactPlayer
-                        url={viewDetails.videoUrl}
+                        url={viewDetails.videoUrl?.url}
                         controls
                         width="100%"
                         height="auto"
@@ -588,7 +767,7 @@ export default function TestimoniesManager() {
                 <div>
                   <h3 className="text-sm font-semibold text-foreground mb-3">Audio</h3>
                   <audio
-                    src={viewDetails.audioUrl}
+                    src={viewDetails.audioUrl?.url}
                     controls
                     className="w-full"
                   />
@@ -596,12 +775,12 @@ export default function TestimoniesManager() {
               )}
 
               {/* Content */}
-              <div>
+              {/* <div>
                 <h3 className="text-sm font-semibold text-foreground mb-3">Testimony</h3>
                 <p className="text-foreground leading-relaxed whitespace-pre-wrap">
-                  {viewDetails.content}
+                  {viewDetails.description}
                 </p>
-              </div>
+              </div> */}
             </div>
           )}
         </DialogContent>
