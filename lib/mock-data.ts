@@ -1,7 +1,13 @@
 // Mock Data for Gospel Ministry Website
 
+export interface MediaUrl {
+  url: string
+  public_id: string
+}
+
 export interface Sermon {
-  id: string
+ 
+  _id: string
   title: string
   speaker: string
   date: string
@@ -9,9 +15,9 @@ export interface Sermon {
   description: string
   passage: string
   image?: string
-  audioUrl?: string
+  audioUrl?: MediaUrl | {url:string, public_id: string} | string
   videoId?: string
-  videoUrl?: string
+  videoUrl?: MediaUrl | {url:string, public_id: string} | string
   likes?: number
   views?: number
   reactions?: { [key: string]: number }
@@ -25,10 +31,10 @@ export interface SermonComment {
 }
 
 export interface Quote {
-  id: string
-  text: string
+  _id: string
+  quote: string
   author: string
-  passage: string
+  scripture: string
   views?: number
   likes?: number
   shares?: number
@@ -36,15 +42,15 @@ export interface Quote {
 }
 
 export interface Devotional {
-  id: string
+  _id: string
   title: string
   date: string
   scripture: string
   reflection: string
   prayer: string
-  views?: number
-  likes?: number
-  shares?: number
+  views?: [string]
+  likes?: [string]
+  shares?: [string]
   reactions?: { [key: string]: number }
 }
 
@@ -54,9 +60,9 @@ export interface Testimony {
   title: string
   content: string
   image?: string
-  videoUrl?: string
+  videoUrl?: MediaUrl | string
   videoId?: string
-  audioUrl?: string
+  audioUrl?: MediaUrl | string
   date?: string
   category?: string
   views?: number
@@ -137,7 +143,7 @@ export interface Notification {
 // Sermons
 export const sermons: Sermon[] = [
   {
-    id: '1',
+    _id: '1',
     title: 'The Power of Faith',
     speaker: 'AP. Joshua Salman',
     date: '2024-02-18',
@@ -151,7 +157,7 @@ export const sermons: Sermon[] = [
     reactions: { heart: 62, amen: 25, inspiring: 0 },
   },
   {
-    id: '2',
+    _id: '2',
     title: 'Love Your Neighbor',
     speaker: 'Pastor Sarah',
     date: '2024-02-11',
@@ -165,7 +171,7 @@ export const sermons: Sermon[] = [
     reactions: { heart: 48, amen: 16, inspiring: 0 },
   },
   {
-    id: '3',
+    _id: '3',
     title: 'Living with Purpose',
     speaker: 'Pastor David',
     date: '2024-02-04',
@@ -183,40 +189,40 @@ export const sermons: Sermon[] = [
 // Gospel Quotes
 export const quotes: Quote[] = [
   {
-    id: '1',
-    text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
+    _id: '1',
+    quote: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
     author: 'Bible',
-    passage: 'John 3:16',
+    scripture: 'John 3:16',
     views: 234,
     likes: 145,
     shares: 42,
     reactions: { love: 98, inspire: 47, pray: 0 },
   },
   {
-    id: '2',
-    text: 'I have told you these things, so that in me you may have peace. In this world you will have trouble. But take heart! I have overcome the world.',
+    _id: '2',
+    quote: 'I have told you these things, so that in me you may have peace. In this world you will have trouble. But take heart! I have overcome the world.',
     author: 'Bible',
-    passage: 'John 16:33',
+    scripture: 'John 16:33',
     views: 189,
     likes: 112,
     shares: 28,
     reactions: { love: 76, inspire: 36, pray: 0 },
   },
   {
-    id: '3',
-    text: 'Therefore, as God\'s chosen people, holy and dearly loved, clothe yourselves with compassion, kindness, humility, gentleness and patience.',
+    _id: '3',
+    quote: 'Therefore, as God\'s chosen people, holy and dearly loved, clothe yourselves with compassion, kindness, humility, gentleness and patience.',
     author: 'Bible',
-    passage: 'Colossians 3:12',
+    scripture: 'Colossians 3:12',
     views: 267,
     likes: 178,
     shares: 35,
     reactions: { love: 124, inspire: 54, pray: 0 },
   },
   {
-    id: '4',
-    text: 'The Lord is my light and my salvation—whom shall I fear? The Lord is the stronghold of my life—of whom shall I be afraid?',
+    _id: '4',
+    quote: 'The Lord is my light and my salvation—whom shall I fear? The Lord is the stronghold of my life—of whom shall I be afraid?',
     author: 'Bible',
-    passage: 'Psalm 27:1',
+    scripture: 'Psalm 27:1',
     views: 156,
     likes: 98,
     shares: 19,
@@ -227,27 +233,27 @@ export const quotes: Quote[] = [
 // Devotionals (Word of Day)
 export const devotionals: Devotional[] = [
   {
-    id: '1',
+    _id: '1',
     title: 'Trust in His Timing',
     date: '2024-02-21',
     scripture: 'Proverbs 3:5-6',
     reflection: 'God\'s timing is always perfect, even when we cannot see the path ahead. When we surrender our worries and trust in His plan, we find peace and clarity.',
     prayer: 'Help me to trust in Your perfect timing, Lord. Guide my steps and help me to have faith in Your plan for my life.',
-    views: 312,
-    likes: 203,
-    shares: 56,
+    views: ['312'],
+    likes: ['203'],
+    shares: ['56'],
     reactions: { love: 138, inspire: 65, pray: 0 },
   },
   {
-    id: '2',
+    _id: '2',
     title: 'Strength in Weakness',
     date: '2024-02-20',
     scripture: '2 Corinthians 12:9',
     reflection: 'Our weaknesses become opportunities for God to demonstrate His strength. When we acknowledge our limitations and turn to Him, we experience true power.',
     prayer: 'Lord, help me to find strength in my weakness. Use my struggles to draw me closer to You.',
-    views: 278,
-    likes: 167,
-    shares: 43,
+    views: ['278'],
+    likes: ['167'],
+    shares: ['43'],
     reactions: { love: 112, inspire: 55, pray: 0 },
   },
 ]
@@ -255,7 +261,7 @@ export const devotionals: Devotional[] = [
 // Testimonies
 export const testimonies: Testimony[] = [
   {
-    id: '1',
+    _id: '1',
     name: 'Mary Johnson',
     title: 'Found Hope Again',
     content: 'Our marriage was on the brink of collapse and we felt like we were out of options. Through the ministry\'s prayers, counseling, and the support of a caring community, hope gently restored us. We learned to forgive, rebuild trust, and rediscover a shared faith. Today our marriage is stronger, filled with grace, patience, and renewed purpose to serve God together.',

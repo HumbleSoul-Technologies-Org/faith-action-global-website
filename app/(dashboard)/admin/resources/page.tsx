@@ -6,16 +6,32 @@ import Tabs from '@/components/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Trash2, Plus, Edit2, Play, Music, MoreVertical, Eye, Heart, Share2 } from 'lucide-react'
 import { Sermon, Quote, Devotional, sermons as initialSermons, quotes as initialQuotes, devotionals as initialDevotionals } from '@/lib/mock-data'
+import { uploadToCloudinary } from '@/lib/api'
+
+
+import { apiRequest } from '@/lib/query-client'
+import { useQuery } from '@tanstack/react-query'
+import { log } from 'node:console'
 
 const ReactPlayer = dynamic(() => import('react-player'), { ssr: false })
 
 export default function ResourcesPage() {
+
+  const { data: allSermons,isLoading } = useQuery<any>({
+    queryKey:['sermons','all']
+  })
+  const { data: allQuotes, isLoading: isQuotesLoading } = useQuery<any>({
+    queryKey:['quotes','all']
+  })
+  const { data: allDevotionals, isLoading: isDevotionalsLoading } = useQuery<any>({
+    queryKey:['devotionals','all']
+  })
   const [search, setSearch] = useState('')
   const [searchQuotes, setSearchQuotes] = useState('')
   const [searchDevotionals, setSearchDevotionals] = useState('')
-  const [sermons, setSermons] = useState<Sermon[]>(initialSermons)
-  const [quotes, setQuotes] = useState<Quote[]>(initialQuotes)
-  const [devotionals, setDevotionals] = useState<Devotional[]>(initialDevotionals)
+  const [sermons, setSermons] = useState<Sermon[]>([])
+  const [quotes, setQuotes] = useState<Quote[]>([])
+  const [devotionals, setDevotionals] = useState<Devotional[]>([])
 
   const [editingSermon, setEditingSermon] = useState<Sermon | null>(null)
   const [editingQuote, setEditingQuote] = useState<Quote | null>(null)
@@ -30,7 +46,13 @@ export default function ResourcesPage() {
   const [selectedAudio, setSelectedAudio] = useState<File | null>(null)
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>('')
   const [audioPreviewUrl, setAudioPreviewUrl] = useState<string>('')
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [videoProgress, setVideoProgress] = useState(0)
+  const [audioProgress, setAudioProgress] = useState(0)
   const videoRefs: Record<string, HTMLVideoElement | null> = {}
+  const [saving, setSaving] = useState(false)
+
 
   // Create preview URL for selected video
   useEffect(() => {
@@ -66,7 +88,7 @@ export default function ResourcesPage() {
         // Initialize all existing YouTube embeds
         sermons.forEach((sermon) => {
           if (sermon.videoId) {
-            setTimeout(() => initializeYoutubePlayer(sermon.id, sermon.videoId!), 100)
+            setTimeout(() => initializeYoutubePlayer(sermon._id, sermon.videoId!), 100)
           }
         })
       }
@@ -93,6 +115,21 @@ export default function ResourcesPage() {
     }, 1000)
     return () => clearInterval(interval)
   }, [youtubePlayers])
+
+
+  useEffect(() => {
+ if (allSermons) {
+  setSermons(allSermons.sermons)
+    }
+    
+    if (allQuotes) {
+      setQuotes(allQuotes)
+    }
+    if (allDevotionals) {
+      setDevotionals(allDevotionals)
+    }
+  }, [allSermons,allQuotes,allDevotionals])
+  
 
   function initializeYoutubePlayer(sermonId: string, videoId: string) {
     if (typeof window !== 'undefined' && (window as any).YT && (window as any).YT.Player) {
@@ -128,35 +165,142 @@ export default function ResourcesPage() {
     }
   }
 
-  function togglePlay(id: string) {
-    setPlaying((prev) => {
-      const next: Record<string, boolean> = {}
-      // make playback mutually exclusive
-      Object.keys(prev).forEach((k) => (next[k] = false))
-      next[id] = !prev[id]
-      return next
-    })
-  }
+  
 
   // Sermon CRUD helpers (in-memory)
-  function addSermon(s: Sermon) {
+  async function addSermon(s: Sermon) {
+     
+   await apiRequest('POST','/sermons/create', s)
     setSermons((prev) => [s, ...prev])
+    setEditingSermon(null)
+      setSelectedVideo(null)
+      setSelectedAudio(null)
+      setVideoProgress(0)
+      setAudioProgress(0)
+      setIsUploading(false)
   }
-  function updateSermon(id: string, updated: Sermon) {
-    setSermons((prev) => prev.map((p) => (p.id === id ? updated : p)))
+  async function updateSermon(id: string, updated: Sermon) {
+    await apiRequest('PUT', `/sermons/update/${id}`, updated)
+    setSermons((prev) => prev.map((p) => (p._id === id ? updated : p)))
+    setEditingSermon(null)
+      setSelectedVideo(null)
+      setSelectedAudio(null)
+      setVideoProgress(0)
+      setAudioProgress(0)
+      setIsUploading(false)
   }
-  function deleteSermon(id: string) {
-    setSermons((prev) => prev.filter((p) => p.id !== id))
+  async function deleteSermon(id: string) {
+    await apiRequest('DELETE', `/sermons/delete/${id}`)
+    setSermons((prev) => prev.filter((p) => p._id !== id))
   }
 
   // Quote & Devotional helpers
-  function addQuote(q: Quote) { setQuotes((p) => [q, ...p]) }
-  function updateQuote(id: string, q: Quote) { setQuotes((p) => p.map((x) => x.id === id ? q : x)) }
-  function deleteQuote(id: string) { setQuotes((p) => p.filter((x) => x.id !== id)) }
+  async function addQuote(q: Quote) { 
+    try {
+      setSaving(true)
+      await apiRequest('POST', '/quotes/create', q); setQuotes((p) => [q, ...p]);
+    } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+    } finally { 
+      setSaving(false)
+    }
+   }
+  async function updateQuote(id: string, q: Quote) {
+    try {
+       setSaving(true); await apiRequest('PUT', `/quotes/update/${id}`, q); setQuotes((p) => p.map((x) => x._id === id ? q : x));  
+    } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+    }finally{setSaving(false)}
+  }
+  async function deleteQuote(id: string) { setSaving(true); await apiRequest('DELETE', `/quotes/delete/${id}`); setQuotes((p) => p.filter((x) => x._id !== id)); setSaving(false) }
 
-  function addDevotional(d: Devotional) { setDevotionals((p) => [d, ...p]) }
-  function updateDevotional(id: string, d: Devotional) { setDevotionals((p) => p.map((x) => x.id === id ? d : x)) }
-  function deleteDevotional(id: string) { setDevotionals((p) => p.filter((x) => x.id !== id)) }
+  async function addDevotional(d: Devotional) { 
+    try {
+      setSaving(true);
+      await apiRequest('POST', '/devotionals/create', d);
+      setDevotionals((p) => [d, ...p]); 
+    } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+    }finally{setSaving(false)}
+   }
+  async function updateDevotional(id: string, d: Devotional) { 
+    try {
+      setSaving(true);
+      await apiRequest('PUT', `/devotionals/update/${id}`, d);
+      setDevotionals((p) => p.map((x) => x._id === id ? d : x));   
+    } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+    }finally{setSaving(false)}
+  }
+  async function deleteDevotional(id: string) { 
+    try {
+      setSaving(true);
+      await apiRequest('DELETE', `/devotionals/delete/${id}`);
+      setDevotionals((p) => p.filter((x) => x._id !== id));
+    } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+    }finally{setSaving(false)}
+   }
+
+  // Upload files to Cloudinary
+  async function handleSaveSermon(sermon: Sermon) {
+    try {
+      setIsUploading(true)
+      setUploadError(null)
+      setVideoProgress(0)
+      setAudioProgress(0)
+      let updatedSermon = { ...sermon }
+
+      // Upload video if selected
+      if (selectedVideo) {
+        try {
+          const videoResponse = await uploadToCloudinary(selectedVideo, 'video', setVideoProgress)
+          updatedSermon = { ...updatedSermon, videoUrl: { url: videoResponse.url, public_id: videoResponse.publicId } }
+        } catch (error) {
+          setUploadError('Failed to upload video. Please try again.')
+          setIsUploading(false)
+          return
+        }
+      }
+
+      // Upload audio if selected
+      if (selectedAudio) {
+        try {
+          const audioResponse = await uploadToCloudinary(selectedAudio, 'auto', setAudioProgress)
+          updatedSermon = { ...updatedSermon, audioUrl: { url: audioResponse.url, public_id: audioResponse.publicId } }
+        } catch (error) {
+          setUploadError('Failed to upload audio. Please try again.')
+          setIsUploading(false)
+          return
+        }
+      }
+
+      // Save the sermon
+      if (sermons.some((s) => s._id === sermon._id)) {
+        updateSermon(sermon._id, updatedSermon)
+       
+      } else {
+        await addSermon(updatedSermon)
+        
+      }
+
+      
+    } catch (error) {
+      console.error('Error saving sermon:', error)
+      setUploadError('An unexpected error occurred. Please try again.')
+      setIsUploading(false)
+    }
+  }
 
   const sermonsContent = (
     <div className="space-y-6">
@@ -168,7 +312,7 @@ export default function ResourcesPage() {
           className="w-full md:max-w-md px-4 py-2 border border-border rounded-lg bg-card"
         />
         <button
-          onClick={() => setEditingSermon({ id: Date.now().toString(), title: '', speaker: '', date: '', duration: '', description: '', passage: '', videoId: '', videoUrl: '', audioUrl: '' })}
+          onClick={() => setEditingSermon({_id:"", title: '', speaker: '', date: '', duration: '', description: '', passage: '', videoId: '', videoUrl: undefined, audioUrl: undefined })}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
         >
           <Plus size={16} /> Add Sermon
@@ -185,7 +329,7 @@ export default function ResourcesPage() {
         }}>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingSermon.id.length > 10 ? 'Edit Sermon' : 'New Sermon'}</DialogTitle>
+              <DialogTitle>{editingSermon._id.length > 10 ? 'Edit Sermon' : 'New Sermon'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -218,7 +362,7 @@ export default function ResourcesPage() {
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Video URL (MP4)</label>
-                <input type="text" placeholder="e.g., /sermon.mp4" value={(editingSermon as any).videoUrl || ''} onChange={(e) => setEditingSermon({ ...editingSermon, videoUrl: e.target.value } as any)} className="w-full px-3 py-2 border border-border rounded-lg bg-white" />
+                <input type="text" placeholder="e.g., /sermon.mp4" value={typeof (editingSermon as any).videoUrl === 'string' ? (editingSermon as any).videoUrl : (editingSermon as any).videoUrl?.url || ''} onChange={(e) => setEditingSermon({ ...editingSermon, videoUrl: e.target.value } as any)} className="w-full px-3 py-2 border border-border rounded-lg bg-white" />
                 <div className="mt-3">
                   <label className="text-sm font-medium mb-2 block">Or upload video file</label>
                   <div
@@ -268,13 +412,13 @@ export default function ResourcesPage() {
                       </button>
                     </div>
                   )}
-                  {selectedVideo && videoPreviewUrl && (
+                  {(selectedVideo && videoPreviewUrl || editingSermon .videoUrl?.url  ) && (
                     <div className="mt-4 bg-black rounded-lg overflow-hidden aspect-video">
                       <video 
                         controls 
                         className="w-full h-full"
-                        src={videoPreviewUrl}
-                        key={videoPreviewUrl}
+                        src={videoPreviewUrl || editingSermon .videoUrl?.url}
+                        key={videoPreviewUrl || editingSermon .videoUrl?.url}
                       >
                         Your browser does not support the video tag.
                       </video>
@@ -284,7 +428,7 @@ export default function ResourcesPage() {
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Audio URL (MP3)</label>
-                <input type="text" placeholder="e.g., /sermon.mp3" value={(editingSermon as any).audioUrl || ''} onChange={(e) => setEditingSermon({ ...editingSermon, audioUrl: e.target.value } as any)} className="w-full px-3 py-2 border border-border rounded-lg bg-white" />
+                <input type="text" placeholder="e.g., /sermon.mp3" value={typeof (editingSermon as any).audioUrl === 'string' ? (editingSermon as any).audioUrl : (editingSermon as any).audioUrl?.url || ''} onChange={(e) => setEditingSermon({ ...editingSermon, audioUrl: e.target.value } as any)} className="w-full px-3 py-2 border border-border rounded-lg bg-white" />
                 <div className="mt-3">
                   <label className="text-sm font-medium mb-2 block">Or upload audio file</label>
                   <div
@@ -334,24 +478,68 @@ export default function ResourcesPage() {
                       </button>
                     </div>
                   )}
-                  {selectedAudio && audioPreviewUrl && (
+                  {(selectedAudio && audioPreviewUrl||(editingSermon as any).audioUrl?.url) && (
                     <div className="mt-4 bg-gray-100 rounded-lg p-3">
                       <audio 
                         controls 
                         className="w-full"
-                        src={audioPreviewUrl}
-                        key={audioPreviewUrl}
+                        src={audioPreviewUrl || (editingSermon as any).audioUrl?.url}
+                        key={audioPreviewUrl||(editingSermon as any).audioUrl?.url}
                       >
                         Your browser does not support the audio tag.
                       </audio>
                     </div>
                   )}
                 </div>
-              </div>
+              </div>{isUploading && selectedVideo && videoProgress > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-medium text-gray-600">Video Upload Progress</p>
+                    <p className="text-xs font-medium text-gray-600">{videoProgress}%</p>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-200" 
+                      style={{ width: `${videoProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {isUploading && selectedAudio && audioProgress > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-medium text-gray-600">Audio Upload Progress</p>
+                    <p className="text-xs font-medium text-gray-600">{audioProgress}%</p>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-200" 
+                      style={{ width: `${audioProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
               <div className="flex gap-3 pt-4">
-                <button onClick={() => { if (sermons.some((s) => s.id === editingSermon.id)) { updateSermon(editingSermon.id, editingSermon) } else { addSermon(editingSermon) } setEditingSermon(null); setSelectedVideo(null); setSelectedAudio(null) }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex-1">Save</button>
-                <button onClick={() => { setEditingSermon(null); setSelectedVideo(null); setSelectedAudio(null) }} className="px-4 py-2 border rounded-lg flex-1">Cancel</button>
+                <button 
+                  onClick={() => handleSaveSermon(editingSermon)} 
+                  disabled={isUploading}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploading ? 'Uploading...' : 'Save'}
+                </button>
+                <button 
+                  onClick={() => { setEditingSermon(null); setSelectedVideo(null); setSelectedAudio(null) }} 
+                  className="px-4 py-2 border rounded-lg flex-1"
+                >
+                  Cancel
+                </button>
               </div>
+              
+              {uploadError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700">{uploadError}</p>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -364,62 +552,62 @@ export default function ResourcesPage() {
           return s.title.toLowerCase().includes(q) || s.speaker.toLowerCase().includes(q)
         }).map((sermon) => {
           return (
-            <div key={sermon.id} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full group relative">
+            <div key={sermon._id} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full group relative">
               {sermon.videoId && (
-                <div className="bg-black aspect-video flex flex-col relative">
+                <div className="bg-black h-full  border-0 aspect-video flex flex-col relative">
                   {/* Custom Controls Bar */}
                   <div className="bg-gray-900 px-3 py-2 flex items-center gap-2 text-white text-xs border-b border-gray-700 z-10">
                     <button
                       onClick={() => {
-                        const player = youtubePlayers[sermon.id]
+                        const player = youtubePlayers[sermon._id]
                         if (player) {
                           if (player.getPlayerState?.() === 1) {
                             player.pauseVideo?.()
                           } else {
                             player.playVideo?.()
                           }
-                          setTimeout(() => updateYoutubeState(sermon.id, player), 100)
+                          setTimeout(() => updateYoutubeState(sermon._id, player), 100)
                         }
                       }}
                         className="hover:bg-white/20 px-2 py-1 rounded shrink-0"
                       >
-                      {youtubeStates[sermon.id]?.isPlaying ? '⏸' : '▶'}
+                      {youtubeStates[sermon._id]?.isPlaying ? '⏸' : '▶'}
                     </button>
-                    <span className="text-xs  shrink-0 w-8" id={`yt-time-${sermon.id}`}>0:00</span>
+                    <span className="text-xs  shrink-0 w-8" id={`yt-time-${sermon._id}`}>0:00</span>
                     <input
                       type="range"
                       min="0"
                       max="100"
-                      value={youtubeStates[sermon.id]?.duration ? (youtubeStates[sermon.id].currentTime / youtubeStates[sermon.id].duration) * 100 : 0}
+                      value={youtubeStates[sermon._id]?.duration ? (youtubeStates[sermon._id].currentTime / youtubeStates[sermon._id].duration) * 100 : 0}
                       onChange={(e) => {
-                        const player = youtubePlayers[sermon.id]
-                        if (player && youtubeStates[sermon.id]) {
-                          const newTime = (parseFloat(e.target.value) / 100) * youtubeStates[sermon.id].duration
+                        const player = youtubePlayers[sermon._id]
+                        if (player && youtubeStates[sermon._id]) {
+                          const newTime = (parseFloat(e.target.value) / 100) * youtubeStates[sermon._id].duration
                           player.seekTo?.(newTime)
-                          setTimeout(() => updateYoutubeState(sermon.id, player), 100)
+                          setTimeout(() => updateYoutubeState(sermon._id, player), 100)
                         }
                       }}
-                      className="flex-1 h-1 bg-gray-700 rounded cursor-pointer accent-primary"
+                      className="flex-1 h-1 w-full bg-gray-700 rounded cursor-pointer accent-primary"
                     />
-                    <span className="text-xs  shrink-0 w-8" id={`yt-duration-${sermon.id}`}>0:00</span>
+                    <span className="text-xs  shrink-0 w-8" id={`yt-duration-${sermon._id}`}>0:00</span>
                     <input
                       type="range"
                       min="0"
                       max="100"
-                      value={(youtubeStates[sermon.id]?.volume || 1) * 100}
+                      value={(youtubeStates[sermon._id]?.volume || 1) * 100}
                       onChange={(e) => {
-                        const player = youtubePlayers[sermon.id]
+                        const player = youtubePlayers[sermon._id]
                         if (player) {
                           const vol = parseFloat(e.target.value)
                           player.setVolume?.(vol)
-                          setYoutubeStates((prev) => ({ ...prev, [sermon.id]: { ...prev[sermon.id], volume: vol / 100 } }))
+                          setYoutubeStates((prev) => ({ ...prev, [sermon._id]: { ...prev[sermon._id], volume: vol / 100 } }))
                         }
                       }}
                       className="w-12 h-1 bg-gray-700 rounded cursor-pointer accent-primary shrink-0"
                     />
                     <button
                       onClick={() => {
-                        const iframe = document.getElementById(`youtube-${sermon.id}`) as HTMLIFrameElement
+                        const iframe = document.getElementById(`youtube-${sermon._id}`) as HTMLIFrameElement
                         if (iframe && iframe.requestFullscreen) {
                           iframe.requestFullscreen()
                         }
@@ -430,16 +618,16 @@ export default function ResourcesPage() {
                     </button>
                   </div>
                   <iframe
-                    id={`youtube-${sermon.id}`}
+                    id={`youtube-${sermon._id}`}
                     width="100%"
                     height="100%"
                     src={`https://www.youtube.com/embed/${sermon.videoId}?allow-fullscreen&enablejsapi=1&modestbranding=1&rel=0&fs=1`}
                     title={sermon.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    className="flex-1"
+                    className="flex-1 w-full "
                     onLoad={() => {
-                      setTimeout(() => initializeYoutubePlayer(sermon.id, sermon.videoId!), 500)
+                      setTimeout(() => initializeYoutubePlayer(sermon._id, sermon.videoId!), 500)
                     }}
                   />
                 </div>
@@ -450,55 +638,55 @@ export default function ResourcesPage() {
                   <div className="bg-gray-900 px-3 py-2 flex items-center gap-2 text-white text-xs border-b border-gray-700 z-10">
                     <button
                       onClick={() => {
-                        const video = document.getElementById(`video-${sermon.id}`) as HTMLVideoElement
+                        const video = document.getElementById(`video-${sermon._id}`) as HTMLVideoElement
                         if (video) {
                           if (video.paused) {
                             video.play()
-                            setVideoStates(prev => ({ ...prev, [sermon.id]: { ...prev[sermon.id], isPlaying: true } }))
+                            setVideoStates(prev => ({ ...prev, [sermon._id]: { ...prev[sermon._id], isPlaying: true } }))
                           } else {
                             video.pause()
-                            setVideoStates(prev => ({ ...prev, [sermon.id]: { ...prev[sermon.id], isPlaying: false } }))
+                            setVideoStates(prev => ({ ...prev, [sermon._id]: { ...prev[sermon._id], isPlaying: false } }))
                           }
                         }
                       }}
                       className="hover:bg-white/20 px-2 py-1 rounded shrink-0"
                     >
-                      {videoStates[sermon.id]?.isPlaying ? '⏸' : '▶'}
+                      {videoStates[sermon._id]?.isPlaying ? '⏸' : '▶'}
                     </button>
-                    <span className="text-xs shrink-0 w-8" id={`time-${sermon.id}`}>0:00</span>
+                    <span className="text-xs shrink-0 w-8" id={`time-${sermon._id}`}>0:00</span>
                     <input
                       type="range"
                       min="0"
                       max="100"
-                      value={videoStates[sermon.id]?.currentTime ? (videoStates[sermon.id].currentTime / videoStates[sermon.id].duration) * 100 : 0}
+                      value={videoStates[sermon._id]?.currentTime ? (videoStates[sermon._id].currentTime / videoStates[sermon._id].duration) * 100 : 0}
                       onChange={(e) => {
-                        const video = document.getElementById(`video-${sermon.id}`) as HTMLVideoElement
-                        if (video && videoStates[sermon.id]) {
-                          const newTime = (parseFloat(e.target.value) / 100) * videoStates[sermon.id].duration
+                        const video = document.getElementById(`video-${sermon._id}`) as HTMLVideoElement
+                        if (video && videoStates[sermon._id]) {
+                          const newTime = (parseFloat(e.target.value) / 100) * videoStates[sermon._id].duration
                           video.currentTime = newTime
                         }
                       }}
                       className="flex-1 h-1 bg-gray-700 rounded cursor-pointer accent-primary"
                     />
-                    <span className="text-xs shrink-0 w-8" id={`duration-${sermon.id}`}>0:00</span>
+                    <span className="text-xs shrink-0 w-8" id={`duration-${sermon._id}`}>0:00</span>
                     <input
                       type="range"
                       min="0"
                       max="100"
-                      value={(videoStates[sermon.id]?.volume || 1) * 100}
+                      value={(videoStates[sermon._id]?.volume || 1) * 100}
                       onChange={(e) => {
-                        const video = document.getElementById(`video-${sermon.id}`) as HTMLVideoElement
+                        const video = document.getElementById(`video-${sermon._id}`) as HTMLVideoElement
                         if (video) {
                           const vol = parseFloat(e.target.value) / 100
                           video.volume = vol
-                          setVideoStates(prev => ({ ...prev, [sermon.id]: { ...prev[sermon.id], volume: vol } }))
+                          setVideoStates(prev => ({ ...prev, [sermon._id]: { ...prev[sermon._id], volume: vol } }))
                         }
                       }}
                       className="w-12 h-1 bg-gray-700 rounded cursor-pointer accent-primary shrink-0"
                     />
                     <button
                       onClick={() => {
-                        const video = document.getElementById(`video-${sermon.id}`) as HTMLVideoElement
+                        const video = document.getElementById(`video-${sermon._id}`) as HTMLVideoElement
                         if (video) {
                           if (video.requestFullscreen) {
                             video.requestFullscreen()
@@ -512,39 +700,39 @@ export default function ResourcesPage() {
                   </div>
                   {/* Video Element */}
                   <video
-                    id={`video-${sermon.id}`}
-                    className="w-full flex-1 bg-black"
-                    onPlay={() => setVideoStates(prev => ({ ...prev, [sermon.id]: { ...prev[sermon.id], isPlaying: true } }))}
-                    onPause={() => setVideoStates(prev => ({ ...prev, [sermon.id]: { ...prev[sermon.id], isPlaying: false } }))}
+                    id={`video-${sermon._id}`}
+                    className="w-full max-h-80 flex-1 bg-black"
+                    onPlay={() => setVideoStates(prev => ({ ...prev, [sermon._id]: { ...prev[sermon._id], isPlaying: true } }))}
+                    onPause={() => setVideoStates(prev => ({ ...prev, [sermon._id]: { ...prev[sermon._id], isPlaying: false } }))}
                     onTimeUpdate={(e) => {
                       const video = e.currentTarget
-                      setVideoStates(prev => ({ ...prev, [sermon.id]: { ...prev[sermon.id], currentTime: video.currentTime } }))
+                      setVideoStates(prev => ({ ...prev, [sermon._id]: { ...prev[sermon._id], currentTime: video.currentTime } }))
                       const mins = Math.floor(video.currentTime / 60)
                       const secs = Math.floor(video.currentTime % 60)
-                      const timeEl = document.getElementById(`time-${sermon.id}`)
+                      const timeEl = document.getElementById(`time-${sermon._id}`)
                       if (timeEl) timeEl.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`
                     }}
                     onLoadedMetadata={(e) => {
                       const video = e.currentTarget
-                      setVideoStates(prev => ({ ...prev, [sermon.id]: { ...prev[sermon.id], duration: video.duration } }))
+                      setVideoStates(prev => ({ ...prev, [sermon._id]: { ...prev[sermon._id], duration: video.duration } }))
                       const mins = Math.floor(video.duration / 60)
                       const secs = Math.floor(video.duration % 60)
-                      const durationEl = document.getElementById(`duration-${sermon.id}`)
+                      const durationEl = document.getElementById(`duration-${sermon._id}`)
                       if (durationEl) durationEl.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`
                     }}
                   >
-                    <source src={sermon.videoUrl} type="video/mp4" />
+                    <source src={typeof sermon.videoUrl === 'string' ? sermon.videoUrl : sermon.videoUrl?.url} type="video/mp4" />
                     Your browser does not support the video tag.
                   </video>
                 </div>
               )}
               {sermon.audioUrl && !sermon.videoId && !sermon.videoUrl && (
-                <div className="bg-linear-to-br relative from-primary/10 to-accent/10 p-6 flex items-center justify-center aspect-video">
+                <div className="bg-linear-to-br h-full relative from-primary/10 to-accent/10 p-6 flex items-center justify-center aspect-video">
                   <div className="text-center w-full">
                     <Music className="text-primary mx-auto mb-3" size={32} />
-                    <p className="text-sm font-semibold text-foreground mb-3">Audio Sermon</p>
+                    <p className="text-sm font-semibold text-foreground mb-3">{sermon.title}-Audio Sermon</p>
                     
-                  </div><audio controls className="w-full absolute top-0" src={sermon.audioUrl} />
+                  </div><audio controls className="w-full absolute top-0" src={typeof sermon.audioUrl === 'string' ? sermon.audioUrl : sermon.audioUrl?.url} />
                 </div>
               )}
               {!sermon.videoId && !sermon.videoUrl && !sermon.audioUrl && sermon.image && (
@@ -576,15 +764,15 @@ export default function ResourcesPage() {
                   </div>
                 </div>
                 <div className="relative ml-4 pointer-events-auto">
-                  <button onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === sermon.id ? null : sermon.id); }} className="p-2 hover:bg-white/20 rounded text-white">
+                  <button onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === sermon._id ? null : sermon._id); }} className="p-2 hover:bg-white/20 rounded text-white">
                     <MoreVertical size={16} />
                   </button>
-                  {openMenu === sermon.id && (
+                  {openMenu === sermon._id && (
                     <div className="absolute right-0 bottom-full mb-2 bg-black border border-gray-600 rounded shadow-lg z-30 w-32">
                       <button onClick={() => { setEditingSermon(sermon); setOpenMenu(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/10 flex items-center gap-2 border-b border-gray-600">
                         <Edit2 size={14} /> Edit
                       </button>
-                      <button onClick={() => { deleteSermon(sermon.id); setOpenMenu(null); }} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 flex items-center gap-2">
+                      <button onClick={() => { deleteSermon(sermon._id); setOpenMenu(null); }} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 flex items-center gap-2">
                         <Trash2 size={14} /> Delete
                       </button>
                     </div>
@@ -607,19 +795,19 @@ export default function ResourcesPage() {
           placeholder="Search quotes or scripture..."
           className="w-full md:max-w-md px-4 py-2 border border-border rounded-lg bg-card"
         />
-        <button onClick={() => setEditingQuote({ id: Date.now().toString(), text: '', author: '', passage: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Quote</button>
+        <button onClick={() => setEditingQuote({ _id: '', quote: '', author: '', scripture: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Quote</button>
       </div>
 
       {editingQuote && (
         <Dialog open={!!editingQuote} onOpenChange={(open) => { if (!open) setEditingQuote(null) }}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>{editingQuote.id.length > 10 ? 'Edit Quote' : 'New Quote'}</DialogTitle>
+              <DialogTitle>{editingQuote._id.length > 10 ? 'Edit Quote' : 'New Quote'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Quote</label>
-                <textarea placeholder="Quote text" value={editingQuote.text} onChange={(e) => setEditingQuote({ ...editingQuote, text: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white h-28" />
+                <textarea placeholder="Quote text" value={editingQuote.quote} onChange={(e) => setEditingQuote({ ...editingQuote, quote: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white h-28" />
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Author</label>
@@ -627,10 +815,10 @@ export default function ResourcesPage() {
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Scripture</label>
-                <input type="text" placeholder="Bible Passage" value={editingQuote.passage} onChange={(e) => setEditingQuote({ ...editingQuote, passage: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg bg-white" />
+                <input type="text" placeholder="Bible Scripture" value={editingQuote.scripture} onChange={(e) => setEditingQuote({ ...editingQuote, scripture: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg bg-white" />
               </div>
               <div className="flex gap-3">
-                <button onClick={() => { if (quotes.some((q) => q.id === editingQuote.id)) { updateQuote(editingQuote.id, editingQuote) } else { addQuote(editingQuote) } setEditingQuote(null) }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex-1">Save</button>
+                <button onClick={() => { if (quotes.some((q) => q._id === editingQuote._id)) { updateQuote(editingQuote._id, editingQuote) } else { addQuote(editingQuote) } setEditingQuote(null) }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex-1">{saving ? 'Saving...' : 'Save'}</button>
                 <button onClick={() => setEditingQuote(null)} className="px-4 py-2 border rounded-lg flex-1">Cancel</button>
               </div>
             </div>
@@ -642,12 +830,12 @@ export default function ResourcesPage() {
         {quotes.filter((quote) => {
           if (!searchQuotes.trim()) return true
           const q = searchQuotes.toLowerCase()
-          return quote.text.toLowerCase().includes(q) || quote.passage.toLowerCase().includes(q)
+          return quote.quote.toLowerCase().includes(q) || quote.scripture.toLowerCase().includes(q)
         }).map((quote) => (
-          <div key={quote.id} className="bg-card rounded-lg border border-border p-6 flex flex-col h-full hover:shadow-lg transition-shadow">
+          <div key={quote._id} className="bg-card rounded-lg border border-border p-6 flex flex-col h-full hover:shadow-lg transition-shadow">
             <div className="flex-1 mb-4">
-              <p className="text-foreground mb-3 italic text-sm">"{quote.text.substring(0, 200)}{quote.text.length > 200 ? '...' : ''}"</p>
-              <p className="text-xs text-muted-foreground font-medium mb-4">{quote.passage}</p>
+              <p className="text-foreground mb-3 italic text-sm">"{quote?.quote.substring(0, 200)}{quote?.quote.length > 200 ? '...' : ''}"</p>
+              <p className="text-xs text-muted-foreground font-medium mb-4">{quote?.scripture}</p>
               <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Eye size={14} />
@@ -665,7 +853,7 @@ export default function ResourcesPage() {
             </div>
             <div className="flex gap-2 pt-4 border-t border-border">
               <button onClick={() => setEditingQuote(quote)} className="flex-1 p-2 hover:bg-primary/10 rounded-lg transition-colors text-primary text-sm font-medium"><Edit2 size={16} className="inline mr-1" /> Edit</button>
-              <button onClick={() => deleteQuote(quote.id)} className="flex-1 p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive text-sm font-medium"><Trash2 size={16} className="inline mr-1" /> Delete</button>
+              <button onClick={() => deleteQuote(quote._id)} className="flex-1 p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive text-sm font-medium"><Trash2 size={16} className="inline mr-1" /> Delete</button>
             </div>
           </div>
         ))}
@@ -682,14 +870,14 @@ export default function ResourcesPage() {
           placeholder="Search devotionals or scripture..."
           className="w-full md:max-w-md px-4 py-2 border border-border rounded-lg bg-card"
         />
-        <button onClick={() => setEditingDevotional({ id: Date.now().toString(), title: '', date: '', scripture: '', reflection: '', prayer: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Devotional</button>
+        <button onClick={() => setEditingDevotional({ _id: Date.now().toString(), title: '', date: '', scripture: '', reflection: '', prayer: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Devotional</button>
       </div>
 
       {editingDevotional && (
         <Dialog open={!!editingDevotional} onOpenChange={(open) => { if (!open) setEditingDevotional(null) }}>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingDevotional.id.length > 10 ? 'Edit Devotional' : 'New Devotional'}</DialogTitle>
+              <DialogTitle>{editingDevotional._id.length > 10 ? 'Edit Devotional' : 'New Devotional'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -709,7 +897,7 @@ export default function ResourcesPage() {
                 <textarea placeholder="Prayer" value={editingDevotional.prayer} onChange={(e) => setEditingDevotional({ ...editingDevotional, prayer: e.target.value })} className="w-full px-4 py-2 border border-border rounded-lg bg-white h-28" />
               </div>
               <div className="flex gap-3">
-                <button onClick={() => { if (devotionals.some((d) => d.id === editingDevotional.id)) { updateDevotional(editingDevotional.id, editingDevotional) } else { addDevotional(editingDevotional) } setEditingDevotional(null) }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex-1">Save</button>
+                <button onClick={() => { if (devotionals.some((d) => d._id === editingDevotional._id)) { updateDevotional(editingDevotional._id, editingDevotional) } else { addDevotional(editingDevotional) } setEditingDevotional(null) }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex-1">{ saving ? 'Saving...' : 'Save' }</button>
                 <button onClick={() => setEditingDevotional(null)} className="px-4 py-2 border rounded-lg flex-1">Cancel</button>
               </div>
             </div>
@@ -723,29 +911,28 @@ export default function ResourcesPage() {
           const q = searchDevotionals.toLowerCase()
           return d.title.toLowerCase().includes(q) || d.scripture.toLowerCase().includes(q)
         }).map((d) => (
-          <div key={d.id} className="bg-card rounded-lg border border-border p-6 flex flex-col h-full hover:shadow-lg transition-shadow">
+          <div key={d._id} className="bg-card rounded-lg border border-border p-6 flex flex-col h-full hover:shadow-lg transition-shadow">
             <div className="flex-1 mb-4">
               <h3 className="font-bold text-foreground mb-2">{d.title}</h3>
               <p className="text-xs text-muted-foreground font-medium mb-3">{d.scripture}</p>
               <p className="text-sm text-foreground line-clamp-3 mb-4">{d.reflection.substring(0, 150)}{d.reflection.length > 150 ? '...' : ''}</p>
+              <p className="text-xs text-muted-foreground font-medium mb-3">{d.prayer}</p>
+
               <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Eye size={14} />
-                  <span>{d.views || 0}</span>
-                </div>
+                 
                 <div className="flex items-center gap-1">
                   <Heart size={14} />
-                  <span>{d.likes || 0}</span>
+                  <span>{d.likes?.length || 0}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Share2 size={14} />
-                  <span>{d.shares || 0}</span>
+                  <span>{d?.shares?.length || 0}</span>
                 </div>
               </div>
             </div>
             <div className="flex gap-2 pt-4 border-t border-border">
               <button onClick={() => setEditingDevotional(d)} className="flex-1 p-2 hover:bg-primary/10 rounded-lg transition-colors text-primary text-sm font-medium"><Edit2 size={16} className="inline mr-1" /> Edit</button>
-              <button onClick={() => deleteDevotional(d.id)} className="flex-1 p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive text-sm font-medium"><Trash2 size={16} className="inline mr-1" /> Delete</button>
+              <button onClick={() => deleteDevotional(d._id)} className="flex-1 p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive text-sm font-medium"><Trash2 size={16} className="inline mr-1" /> Delete</button>
             </div>
           </div>
         ))}
