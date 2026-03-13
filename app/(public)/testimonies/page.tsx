@@ -5,9 +5,10 @@ import { useState, useEffect } from 'react'
 import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
 import Link from 'next/link'
-import { testimonies } from '@/lib/mock-data'
 import { SkeletonGrid } from '@/components/skeleton-card'
-import { Heart, Play, Music, ArrowRight, X, Upload } from 'lucide-react'
+import { Heart, Play, Music, ArrowRight, X, Upload, Eye, Share2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import test from 'node:test'
 
 type FilterType = 'all' | 'video' | 'audio' | 'article'
 
@@ -29,8 +30,10 @@ interface FilePreviewsState {
 }
 
 export default function TestimoniesPage() {
+  
   const [filter, setFilter] = useState<FilterType>('all')
   const [isLoading, setIsLoading] = useState(true)
+  const [testimonies, setTestimonies] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState<TestimonyForm>({
     name: '',
@@ -48,10 +51,19 @@ export default function TestimoniesPage() {
     audioPreview: null,
   })
 
+  const { data: testimonyData } = useQuery<any[]>({
+    queryKey: ['testimony', 'all'],
+  })
+
   useEffect(() => {
+if (testimonyData) {
+  setTestimonies(testimonyData)
+   
+}
+
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
-  }, [])
+  }, [testimonyData])
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -116,12 +128,12 @@ export default function TestimoniesPage() {
     {
       label: 'Videos',
       value: 'video',
-      count: testimonies.filter((t) => t.videoUrl).length,
+      count: testimonies.filter((t) => t.videoUrl?.url).length,
     },
     {
       label: 'Audio',
       value: 'audio',
-      count: testimonies.filter((t) => t.audioUrl).length,
+      count: testimonies.filter((t) => t.audioUrl?.url).length,
     },
     
   ]
@@ -407,28 +419,28 @@ export default function TestimoniesPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {filteredTestimonies.map((testimony) => (
+              {filteredTestimonies.map((testimony,i) => (
                 <Link
-                  key={testimony.id}
-                  href={`/testimonies/${testimony.id}`}
+                  key={i}
+                  href={`/testimonies/${testimony._id}`}
                   className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-xl transition-all hover:scale-105"
                 >
                   {/* Image */}
                   {testimony.image && (
-                    <div className="relative h-48 overflow-hidden bg-muted">
+                    <div className="relative h-52 overflow-hidden bg-muted">
                       <img
-                        src={testimony.image}
+                        src={testimony.image?.url|| '/no-image.jpg'}
                         alt={testimony.name}
                         className="w-full h-full object-cover"
                       />
                       {/* Media Badges */}
                       <div className="absolute top-3 right-3 flex gap-2">
-                        {(testimony?.videoUrl || testimony?.videoId) && (
+                        {(testimony?.videoUrl?.url || testimony?.videoId) && (
                           <div className="bg-accent text-white p-2 rounded-full">
                             <Play size={16} fill="white" />
                           </div>
                         )}
-                        {testimony.audioUrl && (
+                        {testimony.audioUrl?.url && (
                           <div className="bg-secondary text-foreground p-2 rounded-full">
                             <Music size={16} />
                           </div>
@@ -458,7 +470,17 @@ export default function TestimoniesPage() {
                       <div className="flex gap-3 text-xs text-muted-foreground">
                         {testimony.likes !== undefined && (
                           <span className="flex items-center gap-1">
-                            <Heart size={14} /> {testimony.likes}
+                            <Heart size={14} /> {testimony.likes?.length}
+                          </span>
+                        )}
+                        {testimony.views !== undefined && (
+                          <span className="flex items-center gap-1">
+                            <Eye size={14} /> {testimony.views?.length}
+                          </span>
+                        )}
+                        {testimony.shares !== undefined && (
+                          <span className="flex items-center gap-1">
+                            <Share2 size={14} /> {testimony.shares?.length}
                           </span>
                         )}
                       </div>

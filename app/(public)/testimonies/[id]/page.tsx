@@ -8,6 +8,7 @@ import Link from "next/link";
 import { testimonies } from "@/lib/mock-data";
 import { formatDate } from "@/lib/date-utils";
 import { SkeletonDetailPage } from "@/components/skeleton-card";
+import { useQuery } from "@tanstack/react-query";
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
@@ -26,6 +27,7 @@ import {
   Hand,
   Eye,
 } from "lucide-react";
+import { set } from "react-hook-form";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -46,17 +48,26 @@ interface Reaction {
 
 export default function TestimonyDetailsPage({ params }: PageProps) {
   const resolvedParams = require("react").use(params);
-  const testimony = testimonies.find((t) => t.id === resolvedParams.id);
+  // const testimony = testimonies.find((t) => t._id === resolvedParams.id);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: testimonyData ,isLoading} = useQuery<any>({
+    queryKey: ["testimony", resolvedParams.id],
+  })
+
+  // const [isLoading, setIsLoading] = useState(true);
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(testimony?.likes || 0);
-  const [views, setViews] = useState(testimony?.views || 0);
+  const [testimony, setTestimony] = useState<any|null>(null);
+  const [likeCount, setLikeCount] = useState(testimony?.likes.length || 0);
+  const [views, setViews] = useState(testimony?.views.length || 0);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+    if (testimonyData) {
+      setTestimony(testimonyData);
+      
+    }
+    
+   
+  }, [testimonyData]);
   const [reactions, setReactions] = useState<Reaction[]>([
     { type: "heart", count: testimony?.reactions?.heart || 0 },
     { type: "pray", count: testimony?.reactions?.pray || 0 },
@@ -178,7 +189,7 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
   return (
     <>
       <Navigation />
-      <main className="min-h-screen bg-background">
+      <main className="min-h-screen relative bg-background">
         {/* Back Button */}
         <div className="max-w-4xl mx-auto px-4 py-6">
           <Link
@@ -194,9 +205,9 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
         <div className="max-w-4xl mx-auto px-4 pb-12">
           {/* Header Image and Info */}
           <div className="bg-card rounded-lg border border-border overflow-hidden mb-8">
-            {testimony.image && (
+            {testimony.image.url && (
               <img
-                src={testimony.image}
+                src={testimony.image?.url}
                 alt={testimony.name}
                 className="w-full h-96 object-cover"
               />
@@ -280,12 +291,7 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
               </div>
 
               {/* Media Section */}
-              {(testimony.videoUrl ||
-                testimony.videoId ||
-                testimony.audioUrl) && (
-                <div className="border-t border-border pt-6">
-                  <h3 className="font-bold text-foreground mb-4">Media</h3>
-                  {testimony.videoId && (
+               {!!testimony.videoId && (
                     <div className="bg-black rounded-lg overflow-hidden mb-6">
                       <div className="aspect-video">
                         <iframe
@@ -299,7 +305,7 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
                       </div>
                     </div>
                   )}
-                  {testimony.videoUrl && !testimony.videoId && (
+              {testimony.videoUrl.url  && (
                     <div className="bg-black rounded-lg overflow-hidden mb-6">
                       <div
                         className="relative w-full"
@@ -315,7 +321,7 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
                           }}
                         >
                           <ReactPlayer
-                            url={testimony.videoUrl}
+                            url={testimony.videoUrl.url}
                             controls
                             width="100%"
                             height="100%"
@@ -325,7 +331,7 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
                       </div>
                     </div>
                   )}
-                  {testimony.audioUrl && (
+               {testimony.audioUrl?.url && (
                     <div>
                       <p className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
                         <Music size={16} />
@@ -334,27 +340,11 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
                       <audio
                         controls
                         className="w-full rounded-lg"
-                        src={testimony.audioUrl}
+                        src={testimony.audioUrl.url}
                       />
                     </div>
                   )}
-                </div>
-              )}
             </div>
-          </div>
-
-          {/* Full Text Content */}
-          <div className="bg-card rounded-lg border border-border p-8 mb-8">
-            <h2 className="text-2xl font-serif font-bold text-foreground mb-6">
-              Full Testimony
-            </h2>
-            <p className="text-lg text-foreground leading-relaxed mb-6 whitespace-pre-wrap">
-              {testimony.content}
-            </p>
-            <p className="text-muted-foreground italic">
-              "For to me, to live is Christ and to die is gain." - Philippians
-              1:21
-            </p>
           </div>
 
           {/* Reactions Section */}
@@ -408,8 +398,23 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Comments Section */}
-          <div className="bg-card rounded-lg border border-border p-8">
+
+          {/* Full Text Content */}
+          <div className="bg-card rounded-lg border border-border p-8 mb-8">
+            <h2 className="text-2xl font-serif font-bold text-foreground mb-6">
+              Full Testimony
+            </h2>
+            <p className="text-md text-justify text-foreground   mb-6   leading-relaxed">
+              {testimony.description}
+            </p>
+            
+          </div>
+
+          
+          
+        </div>
+        {/* Comments Section */}
+          <div className="bg-card sm:absolute  sm:max-w-100 sm:top-10 left-10 rounded-lg border border-border p-8">
             <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
               <MessageCircle size={24} />
               Comments ({comments.length})
@@ -461,7 +466,6 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
               ))}
             </div>
           </div>
-        </div>
       </main>
       <Footer />
     </>
