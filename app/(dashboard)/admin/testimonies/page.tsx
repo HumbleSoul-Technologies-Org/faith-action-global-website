@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useAdmin } from '@/lib/admin-context'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Trash2, Plus, Edit2, Heart, Music, Play, Upload, X, Eye, Share2, MoreVertical } from 'lucide-react'
+import { Trash2, Plus, Edit2, Heart, Music, Play, Upload, X, Eye, Share2, MoreVertical, ChurchIcon } from 'lucide-react'
 import { Testimony } from '@/lib/mock-data'
 import dynamic from 'next/dynamic'
 import { uploadToCloudinary } from '@/lib/api'
@@ -11,6 +11,7 @@ import { apiRequest } from '@/lib/query-client'
 import axios from 'axios'
 import { useQuery } from '@tanstack/react-query'
 import { set } from 'react-hook-form'
+import test from 'node:test'
 
 const ReactPlayer = dynamic(() => import('react-player'), { ssr: false })
 
@@ -81,9 +82,8 @@ export default function TestimoniesManager() {
   // Count by category
   const counts = {
     all: testimonies.length,
-    video: testimonies.filter((t) => t.videoUrl || t.videoId).length,
-    audio: testimonies.filter((t) => t.audioUrl).length,
-    article: testimonies.filter((t) => !t.videoUrl && !t.audioUrl && !t.videoId).length,
+    video: testimonies.filter((t) => t.videoUrl?.url || t.videoId).length,
+    audio: testimonies.filter((t) => t.audioUrl?.url).length,
   }
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -182,13 +182,15 @@ export default function TestimoniesManager() {
 
       if (selectedImage) {
         imageData = await uploadFileToServer(selectedImage)
+      } else {
+        imageData = { url: selectedTestimony.image?.url , public_id: selectedTestimony.image?.public_id }
       }
       
       
-      const storedImage = { url: selectedTestimony.image?.url , public_id: selectedTestimony.image?.public_id }
+      
       const newTestimony: any = {
         ...updatedForm,
-        image: imageData || storedImage,
+        image: imageData || {url: '', public_id: ''},
       }
 
        
@@ -293,7 +295,7 @@ export default function TestimoniesManager() {
         </div>
       </div>
 
-      <section className="py-8 md:py-12">
+      {testimonies.length > 0 &&<section className="py-8 md:py-12">
         <div className="max-w-6xl mx-auto px-4">
           {/* Filter Buttons */}
           <div className="flex w-full flex-wrap gap-3 mb-8">
@@ -306,7 +308,7 @@ export default function TestimoniesManager() {
               <button
                 key={btn.value}
                 onClick={() => setFilter(btn.value)}
-                className={`px-6 py-2 rounded-full font-medium transition-all ${
+                className={`px-6 py-2 rounded-full cursor-pointer font-medium transition-all ${
                   filter === btn.value
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-foreground hover:bg-muted/80'
@@ -331,7 +333,7 @@ export default function TestimoniesManager() {
 
          
         </div>
-      </section>
+      </section>}
 
       {/* Form Modal */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
@@ -549,7 +551,8 @@ export default function TestimoniesManager() {
       </Dialog>
 
       {/* Testimonies Grid */}
-      <section className="py-12 md:py-16">
+      {testimonies.length > 0 ? (
+        <section className="py-12 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
           {filteredTestimonies.length === 0 ? (
             <div className="text-center py-16">
@@ -660,31 +663,47 @@ export default function TestimoniesManager() {
                   )}
 
                   {/* Media Badges */}
-                  {!hoveredCard && (
-                    <div className="absolute top-3 right-3 flex gap-2">
-                      {(!!testimony?.videoUrl  ) && (
-                        <div className="bg-accent text-white p-2 rounded-full">
-                          <Play size={16} fill="white" />
-                        </div>
-                      )}
-                      {testimony.audioUrl && (
+                  {!hoveredCard && <div className="absolute top-3 right-3 flex gap-2">
+                      
+                      {!!testimony.audioUrl?.url && (
                         <div className="bg-secondary text-foreground p-2 rounded-full">
                           <Music size={16} />
                         </div>
                       )}
-                      {(testimony?.videoId !=="") && (
+                      {(!!testimony?.videoUrl?.url  || (!!testimony?.videoId && testimony.videoId !== "")) && (
                         <div className="bg-accent text-white p-2 rounded-full">
                           <Play size={16} fill="white" />
                         </div>
                       )}
-                    </div>
-                  )}
+                    </div>}
                 </div>
               ))}
             </div>
           )}
         </div>
-      </section>
+      </section>) : (
+          <div className="text-center py-20">
+            <span className='flex items-center w-full justify-center gap-3'>
+               
+              <ChurchIcon size={48} className="text-muted-foreground  " />
+            </span>
+            <p className="text-muted-foreground">No Testimonies  found. Click "Add Testimony" to create your first one!</p>
+            <span className='flex items-center mt-10 w-full justify-center gap-3'>
+                 <button
+              onClick={() => {
+                resetForm()
+                setShowForm(true)
+              }}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition-all flex items-center gap-2 font-medium"
+            >
+              <Plus size={18} /> Add Testimony
+            </button>
+            </span>
+            
+            
+             
+        </div>
+      )}
 
       {/* View Details Dialog */}
       <Dialog open={!!viewDetails} onOpenChange={(open) => !open && setViewDetails(null)}>
@@ -712,7 +731,6 @@ export default function TestimoniesManager() {
                   </p>
                   
                 )}
-                <p className=" text-justify mt-3 text-muted-foreground text-sm mb-2">{viewDetails?.description}</p>
 
               </div>
 
@@ -736,7 +754,7 @@ export default function TestimoniesManager() {
               </div>
 
               {/* Video Player */}
-              {(viewDetails.videoUrl || viewDetails.videoId) && (
+              {(viewDetails.videoUrl?.url || viewDetails.videoId) && (
                 <div>
                   <h3 className="text-sm font-semibold text-foreground mb-3">Video</h3>
                   {viewDetails.videoId ? (
@@ -763,7 +781,7 @@ export default function TestimoniesManager() {
               )}
 
               {/* Audio Player */}
-              {viewDetails.audioUrl && (
+              {viewDetails.audioUrl?.url && (
                 <div>
                   <h3 className="text-sm font-semibold text-foreground mb-3">Audio</h3>
                   <audio
@@ -773,6 +791,10 @@ export default function TestimoniesManager() {
                   />
                 </div>
               )}
+
+              <h2 className="text-xl font-bold text-foreground mt-6">Testimony Transcript Text</h2>
+                <p className=" text-justify mt-3 text-muted-foreground text-sm mb-2">{viewDetails?.description}</p>
+
 
               {/* Content */}
               {/* <div>

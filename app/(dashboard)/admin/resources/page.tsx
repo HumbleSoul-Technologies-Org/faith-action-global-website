@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import Tabs from '@/components/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Trash2, Plus, Edit2, Play, Music, MoreVertical, Eye, Heart, Share2 } from 'lucide-react'
+import { Trash2, Plus, Edit2, Play, Music, MoreVertical, Eye, Heart, Share2, Loader, File, PlaySquareIcon, Music2, QuoteIcon, BookA, BookOpen, BookOpenTextIcon } from 'lucide-react'
 import { Sermon, Quote, Devotional, sermons as initialSermons, quotes as initialQuotes, devotionals as initialDevotionals } from '@/lib/mock-data'
 import { uploadToCloudinary } from '@/lib/api'
 
@@ -52,6 +52,7 @@ export default function ResourcesPage() {
   const [audioProgress, setAudioProgress] = useState(0)
   const videoRefs: Record<string, HTMLVideoElement | null> = {}
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState('')
 
 
   // Create preview URL for selected video
@@ -190,8 +191,14 @@ export default function ResourcesPage() {
       setIsUploading(false)
   }
   async function deleteSermon(id: string) {
-    await apiRequest('DELETE', `/sermons/delete/${id}`)
+   try {     setDeleting(id)
+     await apiRequest('DELETE', `/sermons/delete/${id}`)
     setSermons((prev) => prev.filter((p) => p._id !== id))
+   } catch (error) {
+    console.error('Error deleting sermon:', error)
+   } finally {
+     setDeleting('')
+   }
   }
 
   // Quote & Devotional helpers
@@ -305,18 +312,18 @@ export default function ResourcesPage() {
   const sermonsContent = (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <input
+       {sermons.length > 0 &&  <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search sermons or speaker..."
           className="w-full md:max-w-md px-4 py-2 border border-border rounded-lg bg-card"
-        />
-        <button
+        />}
+       {sermons.length > 0 &&  <button
           onClick={() => setEditingSermon({_id:"", title: '', speaker: '', date: '', duration: '', description: '', passage: '', videoId: '', videoUrl: undefined, audioUrl: undefined })}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
         >
           <Plus size={16} /> Add Sermon
-        </button>
+        </button>}
       </div>
 
       {editingSermon && (
@@ -327,6 +334,8 @@ export default function ResourcesPage() {
             setSelectedAudio(null)
           }
         }}>
+
+          {/* Sermon Edit/Create Form */}
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingSermon._id.length > 10 ? 'Edit Sermon' : 'New Sermon'}</DialogTitle>
@@ -528,7 +537,7 @@ export default function ResourcesPage() {
                   {isUploading ? 'Uploading...' : 'Save'}
                 </button>
                 <button 
-                  onClick={() => { setEditingSermon(null); setSelectedVideo(null); setSelectedAudio(null) }} 
+                  onClick={() => { setEditingSermon(null); setSelectedVideo(null); setSelectedAudio(null);setIsUploading(false); setUploadError(null) }} 
                   className="px-4 py-2 border rounded-lg flex-1"
                 >
                   Cancel
@@ -545,7 +554,7 @@ export default function ResourcesPage() {
         </Dialog>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {sermons.length > 0 ? ( <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {sermons.filter((s) => {
           if (!search.trim()) return true
           const q = search.toLowerCase()
@@ -755,11 +764,11 @@ export default function ResourcesPage() {
                   <div className="flex gap-4 mt-2 text-xs text-gray-400">
                     <div className="flex items-center gap-1">
                       <Heart size={12} className="text-red-400" />
-                      <span>{sermon.likes || 0}</span>
+                      <span>{sermon.likes?.length || 0}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Eye size={12} className="text-blue-400" />
-                      <span>{sermon.views || 0}</span>
+                      <Share2 size={12} className="text-blue-400" />
+                      <span>{sermon.shares?.length || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -773,7 +782,7 @@ export default function ResourcesPage() {
                         <Edit2 size={14} /> Edit
                       </button>
                       <button onClick={() => { deleteSermon(sermon._id); setOpenMenu(null); }} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 flex items-center gap-2">
-                        <Trash2 size={14} /> Delete
+                        {deleting === sermon._id ? <><Loader className='w-3 h-3 animate-spin'/>Deleting...</>: <><Trash2 size={14} /> Delete</>}
                       </button>
                     </div>
                   )}
@@ -782,22 +791,40 @@ export default function ResourcesPage() {
             </div>
           )
         })}
-      </div>
+      </div>) : (
+        <div className="text-center py-20">
+            <span className='flex items-center w-full justify-center gap-3'>
+              <PlaySquareIcon size={48} className="text-muted-foreground   " />
+          <Music2 size={48} className="text-muted-foreground  " /></span>
+            <p className="text-muted-foreground">No sermons found. Click "Add Sermon" to create your first one!</p>
+            <span className='flex items-center mt-10 w-full justify-center gap-3'>
+               <button
+          onClick={() => setEditingSermon({_id:"", title: '', speaker: '', date: '', duration: '', description: '', passage: '', videoId: '', videoUrl: undefined, audioUrl: undefined })}
+          className="px-4 cursor-pointer py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
+        >
+          <Plus size={16} /> Add Sermon
+        </button>
+           </span>
+             
+        </div>
+      )}
     </div>
   )
 
   const quotesContent = (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <input
+      {quotes.length>0 &&   <input
           value={searchQuotes}
           onChange={(e) => setSearchQuotes(e.target.value)}
           placeholder="Search quotes or scripture..."
           className="w-full md:max-w-md px-4 py-2 border border-border rounded-lg bg-card"
-        />
-        <button onClick={() => setEditingQuote({ _id: '', quote: '', author: '', scripture: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Quote</button>
+        />}
+        {quotes.length > 0 && <button onClick={() => setEditingQuote({ _id: '', quote: '', author: '', scripture: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Quote</button>}
       </div>
 
+      
+      {/* quote form */}
       {editingQuote && (
         <Dialog open={!!editingQuote} onOpenChange={(open) => { if (!open) setEditingQuote(null) }}>
           <DialogContent className="sm:max-w-md">
@@ -826,8 +853,10 @@ export default function ResourcesPage() {
         </Dialog>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {quotes.filter((quote) => {
+      
+        {quotes.length >  0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {quotes.filter((quote) => {
           if (!searchQuotes.trim()) return true
           const q = searchQuotes.toLowerCase()
           return quote.quote.toLowerCase().includes(q) || quote.scripture.toLowerCase().includes(q)
@@ -837,17 +866,14 @@ export default function ResourcesPage() {
               <p className="text-foreground mb-3 italic text-sm">"{quote?.quote.substring(0, 200)}{quote?.quote.length > 200 ? '...' : ''}"</p>
               <p className="text-xs text-muted-foreground font-medium mb-4">{quote?.scripture}</p>
               <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Eye size={14} />
-                  <span>{quote.views || 0}</span>
-                </div>
+                
                 <div className="flex items-center gap-1">
                   <Heart size={14} />
-                  <span>{quote.likes || 0}</span>
+                  <span>{quote.likes?.length || 0}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Share2 size={14} />
-                  <span>{quote.shares || 0}</span>
+                  <span>{quote.shares?.length || 0}</span>
                 </div>
               </div>
             </div>
@@ -857,21 +883,38 @@ export default function ResourcesPage() {
             </div>
           </div>
         ))}
-      </div>
+          </div>
+      ) : (
+          <div className="text-center py-20">
+            <span className='flex items-center w-full justify-center gap-3'>
+               
+              <QuoteIcon size={48} className="text-muted-foreground  " />
+              <QuoteIcon size={48} className="text-muted-foreground  " />
+            </span>
+            <p className="text-muted-foreground">No quotes found. Click "Add Quote" to create your first one!</p>
+            <span className='flex items-center mt-10 w-full justify-center gap-3'>
+                <button onClick={() => setEditingQuote({ _id: '', quote: '', author: '', scripture: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Quote</button>
+           </span>
+             
+        </div>
+        )}
+      
     </div>
   )
 
   const devotionalsContent = (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <input
+        {devotionals.length > 0 && <input
           value={searchDevotionals}
           onChange={(e) => setSearchDevotionals(e.target.value)}
           placeholder="Search devotionals or scripture..."
           className="w-full md:max-w-md px-4 py-2 border border-border rounded-lg bg-card"
-        />
-        <button onClick={() => setEditingDevotional({ _id: Date.now().toString(), title: '', date: '', scripture: '', reflection: '', prayer: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Devotional</button>
+        />}
+       {devotionals.length > 0 &&  <button onClick={() => setEditingDevotional({ _id: Date.now().toString(), title: '', date: '', scripture: '', reflection: '', prayer: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Devotional</button>}
       </div>
+
+      {/* Devotional form */}
 
       {editingDevotional && (
         <Dialog open={!!editingDevotional} onOpenChange={(open) => { if (!open) setEditingDevotional(null) }}>
@@ -905,7 +948,7 @@ export default function ResourcesPage() {
         </Dialog>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {devotionals.length > 0 ? (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {devotionals.filter((d) => {
           if (!searchDevotionals.trim()) return true
           const q = searchDevotionals.toLowerCase()
@@ -936,7 +979,19 @@ export default function ResourcesPage() {
             </div>
           </div>
         ))}
-      </div>
+      </div>) : (
+           <div className="text-center py-20">
+            <span className='flex items-center w-full justify-center gap-3'>
+               
+              <BookOpenTextIcon size={48} className="text-muted-foreground  " />
+            </span>
+            <p className="text-muted-foreground">No devotionals found. Click "Add Devotional" to create your first one!</p>
+            <span className='flex items-center mt-10 w-full justify-center gap-3'>
+                <button onClick={() => setEditingDevotional({ _id: Date.now().toString(), title: '', date: '', scripture: '', reflection: '', prayer: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"><Plus size={16} /> Add Devotional</button>
+           </span>
+             
+        </div>
+      )}
     </div>
   )
 

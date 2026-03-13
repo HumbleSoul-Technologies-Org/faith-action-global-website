@@ -18,9 +18,10 @@ export interface Sermon {
   audioUrl?: MediaUrl  
   videoId?: string
   videoUrl?: MediaUrl 
-  likes?: number
-  views?: number
-  reactions?: { [key: string]: number }
+  likes?: [string]
+  views?: [string]
+  shares?: [string]
+  
 }
 
 export interface SermonComment {
@@ -35,10 +36,10 @@ export interface Quote {
   quote: string
   author: string
   scripture: string
-  views?: number
-  likes?: number
-  shares?: number
-  reactions?: { [key: string]: number }
+  views?: [string]
+  likes?: [string]
+  shares?: [string]
+  
 }
 
 export interface Devotional {
@@ -489,7 +490,7 @@ export const notifications: Notification[] = [
     id: '1',
     title: 'New Message',
     type: 'message',
-    href: '/dashboard/messages/1',
+    href: '/dashboard/messages',
     description: 'John Smith sent you a message about prayer requests.',
     date: '2024-02-20',
     isSeen: false,
@@ -506,7 +507,7 @@ export const notifications: Notification[] = [
     id: '3',
     title: 'New Comment',
     type: 'comment',
-    href: '/resources/1',
+    href: '/resources ',
     description: 'Someone commented on your sermon.',
     date: '2024-02-19',
     isSeen: true,
