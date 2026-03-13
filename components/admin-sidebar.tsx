@@ -13,8 +13,8 @@ export default function AdminSidebar() {
     { href: '/admin', label: 'Dashboard', icon: BarChart3 },
     { href: '/admin/resources', label: 'Resources', icon: BookOpen },
     { href: '/admin/testimonies', label: 'Testimonies', icon: Heart },
-    { href: '/admin/empowerment', label: 'Empowerment', icon: Users },
-    { href: '/admin/settings', label: 'Settings', icon: Settings },
+    // { href: '/admin/empowerment', label: 'Empowerment', icon: Users },
+    // { href: '/admin/settings', label: 'Settings', icon: Settings },
   ]
 
   const isActive = (href: string) => pathname === href

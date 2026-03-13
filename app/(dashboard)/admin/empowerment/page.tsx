@@ -7,11 +7,28 @@ import { formatDate } from '@/lib/date-utils'
 import { Trash2, Plus, Edit2, MoreVertical, Eye, Heart, Share2 } from 'lucide-react'
 import { Article, Event } from '@/lib/mock-data'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { log } from 'console'
 
 export default function EmpowermentManager() {
-  const { articles, events, addArticle, updateArticle, deleteArticle, addEvent, updateEvent, deleteEvent } = useAdmin()
   const [editingArticle, setEditingArticle] = useState<Article | null>(null)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
+
+  // separate form state for creating/editing an event
+  const [evTitle, setEvTitle] = useState('')
+  const [evDate, setEvDate] = useState('')
+  const [evTime, setEvTime] = useState('')
+  const [evLatitude, setEvLatitude] = useState<number | undefined>(undefined)
+  const [evLongitude, setEvLongitude] = useState<number | undefined>(undefined)
+  const [evDescription, setEvDescription] = useState('')
+  const [evImageUrl, setEvImageUrl] = useState('')
+
+  // separate form state for creating/editing an article
+  const [artTitle, setArtTitle] = useState('')
+  const [artAuthor, setArtAuthor] = useState('')
+  const [artCategory, setArtCategory] = useState('')
+  const [artContent, setArtContent] = useState('')
+  const [artImageUrl, setArtImageUrl] = useState('')
 
   const [hoveredArticle, setHoveredArticle] = useState<string | null>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
@@ -20,30 +37,280 @@ export default function EmpowermentManager() {
   const [openEventMenu, setOpenEventMenu] = useState<string | null>(null)
   const [viewEvent, setViewEvent] = useState<Event | null>(null)
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string>('')
+  const [imagePreview, setImagePreview] = useState('')
+  const [events, setEvents] = useState<any[]>([])
+  const [articles, setArticles] = useState<any[]>([])
 
-  // create and cleanup preview URL for uploaded image
-  useEffect(() => {
-    if (!selectedImage) return
-    const url = URL.createObjectURL(selectedImage)
-    setImagePreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [selectedImage])
-
-  // when opening an edit/create dialog, reset selectedImage and set preview to existing image URL
+  // populate form fields when editing an article
   useEffect(() => {
     if (editingArticle) {
-      setSelectedImage(null)
+      setArtTitle(editingArticle.title)
+      setArtAuthor(editingArticle.author)
+      setArtCategory(editingArticle.category)
+      setArtContent(editingArticle.content)
+      setArtImageUrl(editingArticle.image || '')
       setImagePreview(editingArticle.image || '')
+      setSelectedImage(null)
+    } else {
+      // clear form when closing dialog
+      setArtTitle('')
+      setArtAuthor('')
+      setArtCategory('')
+      setArtContent('')
+      setArtImageUrl('')
+      setImagePreview('')
+      setSelectedImage(null)
     }
   }, [editingArticle])
 
+  // populate form fields when editing an event
   useEffect(() => {
     if (editingEvent) {
+      setEvTitle(editingEvent.title)
+      setEvDate(editingEvent.date)
+      setEvTime(editingEvent.time)
+      setEvLatitude(editingEvent.latitude)
+      setEvLongitude(editingEvent.longitude)
+      setEvDescription(editingEvent.description)
+      setEvImageUrl(editingEvent.image?.url || '')
+      setImagePreview(editingEvent.image?.url || '')
       setSelectedImage(null)
-      setImagePreview(editingEvent.image || '')
+    } else {
+      // clear form when closing dialog
+      setEvTitle('')
+      setEvDate('')
+      setEvTime('')
+      setEvLatitude(undefined)
+      setEvLongitude(undefined)
+      setEvDescription('')
+      setEvImageUrl('')
+      setImagePreview('')
+      setSelectedImage(null)
     }
   }, [editingEvent])
+
+  // upload the selected image directly to Cloudinary from the front end
+  const uploadFileToCloudinary = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'gospel-assets');
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        return { url: data.secure_url, public_id: data.public_id };
+      } else {
+        console.error('Upload failed:', data);
+        return { url: "", public_id: "" };
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      return { url: "", public_id: "" };
+    }
+  };
+
+  // submit a new article
+  const submitNewArticle = async () => {
+    try {
+      const id = Date.now().toString()
+      const payload: any = {
+        id,
+        title: artTitle,
+        author: artAuthor,
+        category: artCategory,
+        content: artContent,
+        date: new Date().toISOString().split('T')[0],
+      }
+
+      // handle image upload for new article
+      if (selectedImage instanceof File) {
+        const imageResp = await uploadFileToCloudinary(selectedImage);
+        if (imageResp?.url) {
+          payload.image = imageResp.url
+        }
+      } else if (artImageUrl) {
+        payload.image = artImageUrl
+      }
+
+      // addArticle(payload)
+
+      // reset form
+      setEditingArticle(null)
+      setSelectedImage(null)
+      setImagePreview('')
+      setArtTitle('')
+      setArtAuthor('')
+      setArtCategory('')
+      setArtContent('')
+      setArtImageUrl('')
+    } catch (error) {
+      console.error('submitNewArticle error:', error)
+    }
+  }
+
+  // submit an updated article
+  const submitUpdatedArticle = async () => {
+    if (!editingArticle) return
+
+    try {
+      const payload: any = {
+        id: editingArticle.id,
+        title: artTitle,
+        author: artAuthor,
+        category: artCategory,
+        content: artContent,
+        date: editingArticle.date,
+      }
+
+      // handle image update
+      if (selectedImage instanceof File) {
+        // upload new image
+        const imageResp = await uploadFileToCloudinary(selectedImage);
+        if (imageResp?.url) {
+          payload.image = imageResp.url
+        }
+      } else if (artImageUrl && artImageUrl !== editingArticle.image) {
+        // use manually entered URL if different from current
+        payload.image = artImageUrl
+      } else if (editingArticle.image) {
+        // keep existing image
+        payload.image = editingArticle.image
+      }
+
+      // updateArticle(editingArticle.id, payload)
+
+      // reset form
+      setEditingArticle(null)
+      setSelectedImage(null)
+      setImagePreview('')
+      setArtTitle('')
+      setArtAuthor('')
+      setArtCategory('')
+      setArtContent('')
+      setArtImageUrl('')
+    } catch (error) {
+      console.error('submitUpdatedArticle error:', error)
+    }
+  }
+
+  // wrapper function to handle both new and existing articles
+  const submitArticle = () => {
+    if (editingArticle && articles.some((a) => a.id === editingArticle.id)) {
+      submitUpdatedArticle()
+    } else {
+      submitNewArticle()
+    }
+  }
+
+  // submit a new event
+  const submitNewEvent = async () => {
+    try {
+      const id = Date.now().toString()
+      const payload: any = {
+        id,
+        title: evTitle,
+        date: evDate,
+        time: evTime,
+        description: evDescription,
+        latitude: evLatitude,
+        longitude: evLongitude,
+        location:
+          evLatitude != null && evLongitude != null && isFinite(evLatitude) && isFinite(evLongitude)
+            ? `${evLatitude}, ${evLongitude}`
+            : '',
+      }
+
+      // handle image upload for new event
+      if (selectedImage instanceof File) {
+        const imageResp = await uploadFileToCloudinary(selectedImage);
+         console.log('====================================');
+         console.log('Image upload response:', imageResp);
+         console.log('====================================');
+      }  
+
+      // addEvent(payload)
+
+      // reset form
+      setEditingEvent(null)
+      setSelectedImage(null)
+      setImagePreview('')
+      setEvTitle('')
+      setEvDate('')
+      setEvTime('')
+      setEvLatitude(undefined)
+      setEvLongitude(undefined)
+      setEvDescription('')
+      setEvImageUrl('')
+    } catch (error) {
+      console.error('submitNewEvent error:', error)
+    }
+  }
+
+  // submit an updated event
+  const submitUpdatedEvent = async () => {
+    if (!editingEvent) return
+
+    try {
+      const payload: any = {
+        id: editingEvent.id,
+        title: evTitle,
+        date: evDate,
+        time: evTime,
+        description: evDescription,
+        latitude: evLatitude,
+        longitude: evLongitude,
+        location:
+          evLatitude != null && evLongitude != null && isFinite(evLatitude) && isFinite(evLongitude)
+            ? `${evLatitude}, ${evLongitude}`
+            : '',
+      }
+
+      // handle image update
+      if (selectedImage instanceof File) {
+        // upload new image
+        const imageResp = await uploadFileToCloudinary(selectedImage);
+        if (imageResp?.url) {
+          payload.image = imageResp
+        }
+      } else if (evImageUrl && evImageUrl !== editingEvent.image?.url) {
+        // use manually entered URL if different from current
+        payload.image = { url: evImageUrl, public_id: '' }
+      } else if (editingEvent.image) {
+        // keep existing image
+        payload.image = editingEvent.image
+      }
+
+      // updateEvent(editingEvent.id, payload)
+
+      // reset form
+      setEditingEvent(null)
+      setSelectedImage(null)
+      setImagePreview('')
+      setEvTitle('')
+      setEvDate('')
+      setEvTime('')
+      setEvLatitude(undefined)
+      setEvLongitude(undefined)
+      setEvDescription('')
+      setEvImageUrl('')
+    } catch (error) {
+      console.error('submitUpdatedEvent error:', error)
+    }
+  }
+
+  // wrapper function to handle both new and existing events
+  const submitEvent = () => {
+    if (editingEvent && events.some((e) => e.id === editingEvent.id)) {
+      submitUpdatedEvent()
+    } else {
+      submitNewEvent()
+    }
+  }
 
   const articlesContent = (
     <div>
@@ -79,8 +346,8 @@ export default function EmpowermentManager() {
                 <input
                   type="url"
                   placeholder="https://example.com/image.jpg"
-                  value={editingArticle.image || ''}
-                  onChange={(e) => setEditingArticle({ ...editingArticle, image: e.target.value })}
+                  value={artImageUrl}
+                  onChange={(e) => setArtImageUrl(e.target.value)}
                   className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <div className="mt-3 flex items-center gap-3">
@@ -108,41 +375,34 @@ export default function EmpowermentManager() {
               <input
                 type="text"
                 placeholder="Title"
-                value={editingArticle.title}
-                onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
+                value={artTitle}
+                onChange={(e) => setArtTitle(e.target.value)}
                 className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <input
                 type="text"
                 placeholder="Author"
-                value={editingArticle.author}
-                onChange={(e) => setEditingArticle({ ...editingArticle, author: e.target.value })}
+                value={artAuthor}
+                onChange={(e) => setArtAuthor(e.target.value)}
                 className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <input
                 type="text"
                 placeholder="Category"
-                value={editingArticle.category}
-                onChange={(e) => setEditingArticle({ ...editingArticle, category: e.target.value })}
+                value={artCategory}
+                onChange={(e) => setArtCategory(e.target.value)}
                 className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <textarea
                 placeholder="Content"
-                value={editingArticle.content}
-                onChange={(e) => setEditingArticle({ ...editingArticle, content: e.target.value })}
+                value={artContent}
+                onChange={(e) => setArtContent(e.target.value)}
                 className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none h-40"
               />
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    if (articles.some((a) => a.id === editingArticle.id)) {
-                      updateArticle(editingArticle.id, editingArticle)
-                    } else {
-                      addArticle(editingArticle)
-                    }
-                    setEditingArticle(null)
-                  }}
+                  onClick={submitArticle}
                   type="button"
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition-all"
                 >
@@ -220,7 +480,7 @@ export default function EmpowermentManager() {
                       </button>
                       <button
                         onClick={() => {
-                          deleteArticle(article.id)
+                          // deleteArticle(article.id)
                           setOpenMenu(null)
                         }}
                         className="w-full px-4 py-2 text-left hover:bg-destructive/10 transition-colors text-sm text-destructive"
@@ -284,7 +544,6 @@ export default function EmpowermentManager() {
       </Dialog>
     </div>
   )
-
   const eventsContent = (
     <div>
       <div className="mb-6">
@@ -297,6 +556,7 @@ export default function EmpowermentManager() {
               time: '',
               location: '',
               description: '',
+              image: { url: '', public_id: '' },
             })
           }
           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition-all flex items-center gap-2"
@@ -318,8 +578,8 @@ export default function EmpowermentManager() {
                 <input
                   type="url"
                   placeholder="https://example.com/image.jpg"
-                  value={editingEvent.image || ''}
-                  onChange={(e) => setEditingEvent({ ...editingEvent, image: e.target.value })}
+                  value={evImageUrl}
+                  onChange={(e) => setEvImageUrl(e.target.value)}
                   className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <div className="mt-3 flex items-center gap-3">
@@ -347,79 +607,72 @@ export default function EmpowermentManager() {
               <input
                 type="text"
                 placeholder="Title"
-                value={editingEvent.title}
-                onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                value={evTitle}
+                onChange={(e) => setEvTitle(e.target.value)}
                 className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <input
                 type="date"
-                value={editingEvent.date}
-                onChange={(e) => setEditingEvent({ ...editingEvent, date: e.target.value })}
+                value={evDate}
+                onChange={(e) => setEvDate(e.target.value)}
                 className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <input
                 type="time"
-                value={editingEvent.time}
-                onChange={(e) => setEditingEvent({ ...editingEvent, time: e.target.value })}
+                value={evTime}
+                onChange={(e) => setEvTime(e.target.value)}
                 className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Latitude</label>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
                     placeholder="e.g. 6.5244"
-                    value={editingEvent.latitude ?? ''}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, latitude: e.target.value ? parseFloat(e.target.value) : undefined })}
+                    value={evLatitude != null && !isNaN(evLatitude) ? evLatitude : ''}
+                    onChange={(e) => {
+                      const num = parseFloat(e.target.value)
+                      setEvLatitude(!isNaN(num) ? num : undefined)
+                    }}
                     className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Longitude</label>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
                     placeholder="e.g. 3.3792"
-                    value={editingEvent.longitude ?? ''}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, longitude: e.target.value ? parseFloat(e.target.value) : undefined })}
+                    value={evLongitude != null && !isNaN(evLongitude) ? evLongitude : ''}
+                    onChange={(e) => {
+                      const num = parseFloat(e.target.value)
+                      setEvLongitude(!isNaN(num) ? num : undefined)
+                    }}
                     className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
               <textarea
                 placeholder="Description"
-                value={editingEvent.description}
-                onChange={(e) => setEditingEvent({ ...editingEvent, description: e.target.value })}
+                value={evDescription}
+                onChange={(e) => setEvDescription(e.target.value)}
                 className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none h-40"
               />
 
               <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    const payload = { ...editingEvent }
-                    if (editingEvent.latitude !== undefined && editingEvent.longitude !== undefined) {
-                      payload.location = `${editingEvent.latitude}, ${editingEvent.longitude}`
-                    }
-                    if (events.some((e) => e.id === editingEvent.id)) {
-                      updateEvent(editingEvent.id, payload as Event)
-                    } else {
-                      addEvent(payload as Event)
-                    }
-                    setEditingEvent(null)
-                  }}
-                  type="button"
+                <Button
+                  onClick={submitEvent}
+                   
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition-all"
                 >
                   Save
-                </button>
-                <button
+                </Button>
+                <Button 
                   onClick={() => setEditingEvent(null)}
-                  type="button"
+                  
                   className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-card transition-all"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           )}
@@ -434,7 +687,7 @@ export default function EmpowermentManager() {
             onMouseEnter={() => {
               setHoveredEvent(event.id)
               setSelectedImage(null)
-              setImagePreview(event.image || '')
+              setImagePreview(event.image?.url || '')
             }}
             onMouseLeave={() => {
               setHoveredEvent(null)
@@ -443,7 +696,7 @@ export default function EmpowermentManager() {
           >
             <div
               className="absolute inset-0 bg-center bg-cover"
-              style={{ backgroundImage: `url(${event.image || '/placeholder.jpg'})` }}
+              style={{ backgroundImage: `url(${event.image?.url || '/placeholder.jpg'})` }}
             />
 
             <div className="absolute inset-0 bg-linear-to-b from-black/80 to-transparent p-4 flex flex-col justify-between">
@@ -525,7 +778,7 @@ export default function EmpowermentManager() {
           {viewEvent && (
             <div className="space-y-6 px-6 pb-6">
               {viewEvent.image && (
-                <img src={viewEvent.image} alt={viewEvent.title} className="w-full h-64 object-cover rounded-lg" />
+                <img src={viewEvent.image?.url} alt={viewEvent.title} className="w-full h-64 object-cover rounded-lg" />
               )}
               <div>
                 <h2 className="text-2xl font-bold text-foreground mb-2">{viewEvent.title}</h2>
@@ -547,7 +800,6 @@ export default function EmpowermentManager() {
       </Dialog>
     </div>
   )
-
   const tabs = [
     { id: 'articles', label: 'Articles', content: articlesContent },
     { id: 'events', label: 'Events', content: eventsContent },

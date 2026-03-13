@@ -3,31 +3,47 @@
 import { useState,useEffect } from 'react'
 import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
-import { Phone, Mail, MapPin, Clock } from 'lucide-react'
+import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react'
+import { set } from 'react-hook-form'
+import { apiRequest } from '@/lib/query-client'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     subject: '',
     message: '',
   })
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault()
-    // Simulated form submission
-    console.log('Form submitted:', formData)
+    setSubmitting(true)
+    try {
+     await apiRequest('POST','/messages/contact', formData)
+    
+   } catch (error) {
+    console.log('====================================');
+    console.log(error);
+    console.log('====================================');
+   } finally {
+    setSubmitting(false)
     setSubmitted(true)
-    setTimeout(() => {
-      setFormData({ name: '', email: '', subject: '', message: '' })
-      setSubmitted(false)
-    }, 3000)
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      subject: '',
+      message: '',
+    })
+   }
   }
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' })}, [])
@@ -133,6 +149,22 @@ export default function ContactPage() {
                       placeholder="your.email@example.com"
                     />
                   </div>
+                 <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
+                      Phone Number
+                    </label>
+                   
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-border rounded-lg bg-white text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="7xx-xxx-xxxx"
+                    />
+                  </div>
 
                   <div>
                     <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-2">
@@ -174,9 +206,10 @@ export default function ContactPage() {
 
                   <button
                     type="submit"
-                    className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition-all font-medium"
+                    className={`w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition-all font-medium ${submitting ? 'cursor-not-allowed opacity-70' : ''}`}
+                    disabled={submitting}
                   >
-                    Send Message
+                    {submitting ? <span className='flex items-center justify-center gap-2'>Sending Message... <Send className='w-4 h-4 animate-bounce' /></span> : 'Send Message'}
                   </button>
 
                   {submitted && (

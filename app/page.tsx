@@ -91,7 +91,7 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {sermons.slice(0, 3).map((sermon) => (
-                <div key={sermon.id} className="bg-white rounded-lg border border-border p-6 hover:shadow-lg transition-shadow">
+                <div key={sermon._id} className="bg-white rounded-lg border border-border p-6 hover:shadow-lg transition-shadow">
                   <h3 className="text-lg font-bold text-foreground mb-2">{sermon.title}</h3>
                   <p className="text-sm text-muted-foreground mb-4">by {sermon.speaker}</p>
                   <p className="text-sm text-foreground mb-4">{sermon.description}</p>
@@ -100,7 +100,7 @@ export default function Home() {
                     <span>{sermon.duration}</span>
                   </div>
                   <div className="inline-flex w-full items-center justify-end gap-2 text-primary hover:gap-4 transition-all font-medium mt-4">
-                     <Link href={`/resources/${sermon.id}`} className="inline-flex  items-center gap-2 text-primary hover:gap-4 transition-all font-medium mt-4">
+                     <Link href={`/resources/${sermon._id}`} className="inline-flex  items-center gap-2 text-primary hover:gap-4 transition-all font-medium mt-4">
                     Listen Now <ArrowRight size={16} />
                   </Link>
                  </div>
@@ -119,9 +119,9 @@ export default function Home() {
               </h2>
               <blockquote className="text-center mb-6">
                 <p className="text-lg md:text-xl text-foreground mb-4 leading-relaxed">
-                  "{quotes[0].text}"
+                  "{quotes[0].quote}"
                 </p>
-                <footer className="text-muted-foreground">— {quotes[0].passage}</footer>
+                <footer className="text-muted-foreground">— {quotes[0].scripture}</footer>
               </blockquote>
             </div>
           </div>
@@ -138,10 +138,10 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {testimonies.slice(0, 3).map((testimony) => (
-                <Link href={`/testimonies/${testimony.id}`} key={testimony.id} className="bg-white rounded-lg border border-border p-6 hover:shadow-lg transition-shadow">
+                <Link href={`/testimonies/${testimony._id}`} key={testimony._id} className="bg-white rounded-lg border border-border p-6 hover:shadow-lg transition-shadow">
                   {testimony.image && (
                     <img
-                      src={testimony.image}
+                      src={testimony.image.url}
                       alt={testimony.name}
                       className="w-full h-48 object-cover rounded-lg mb-4"
                     />
@@ -172,7 +172,7 @@ export default function Home() {
                 >
                   {event.image && (
                     <img
-                      src={event.image}
+                      src={event.image.url}
                       alt={event.title}
                       className="w-full md:w-48 h-48 object-cover rounded-lg"
                     />

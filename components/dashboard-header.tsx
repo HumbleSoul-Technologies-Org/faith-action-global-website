@@ -1,18 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { Mail, Bell, LogOut } from 'lucide-react'
-import { messages, notifications } from '@/lib/mock-data'
+import {notifications } from '@/lib/mock-data'
 import NotificationsSidebar from './notifications-sidebar'
+import { useQuery } from '@tanstack/react-query'
 
 export default function DashboardHeader() {
+  const { data:messageData } = useQuery<any[]>({
+    queryKey: ['messages','all'],
+  })
+
+    const [messages, setMessages] = useState<any[]>([])
+  
   const { logout, username } = useAuth()
   const [showNotifications, setShowNotifications] = useState(false)
-  
   const unreadMessages = messages.filter((m) => !m.isRead).length
   const unseenNotifications = notifications.filter((n) => !n.isSeen).length
+
+   useEffect(() => { 
+    if (messageData) {
+       setMessages(messageData)
+    }
+  }, [messageData])
 
   return (
     <>
@@ -20,8 +32,7 @@ export default function DashboardHeader() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           {/* Left Side - Branding */}
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-serif font-bold text-primary">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Welcome, {username}</p>
+            
           </div>
 
           {/* Right Side - Icons and Actions */}
@@ -39,7 +50,7 @@ export default function DashboardHeader() {
             {/* Notifications Icon */}
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 hover:bg-muted rounded-lg transition"
+              className="relative mr-10 p-2 hover:bg-muted rounded-lg transition"
             >
               <Bell size={20} className="text-foreground" />
               {unseenNotifications > 0 && (

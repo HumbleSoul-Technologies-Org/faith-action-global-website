@@ -12,8 +12,8 @@ export default function AdminDashboard() {
     { label: 'Quotes', count: quotes.length, icon: MessageSquare, color: 'text-green-600' },
     { label: 'Devotionals', count: devotionals.length, icon: Calendar, color: 'text-purple-600' },
     { label: 'Testimonies', count: testimonies.length, icon: Heart, color: 'text-red-600' },
-    { label: 'Articles', count: articles.length, icon: Users, color: 'text-orange-600' },
-    { label: 'Events', count: events.length, icon: TrendingUp, color: 'text-teal-600' },
+    // { label: 'Articles', count: articles.length, icon: Users, color: 'text-orange-600' },
+    // { label: 'Events', count: events.length, icon: TrendingUp, color: 'text-teal-600' },
   ]
 
   return (
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
             >
               Manage Testimonies
             </Link>
-            <Link
+            {/* <Link
               href="/admin/empowerment"
               className="block px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors font-medium"
             >
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
               className="block px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors font-medium"
             >
               System Settings
-            </Link>
+            </Link> */}
           </div>
         </div>
       </div>

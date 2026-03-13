@@ -99,7 +99,7 @@ export interface Event {
   time: string
   location: string
   description: string
-  image?: string
+  image?: { url: string; public_id: string }
   latitude?: number
   longitude?: number
   views?: number

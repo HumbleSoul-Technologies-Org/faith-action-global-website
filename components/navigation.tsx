@@ -15,7 +15,7 @@ export default function Navigation() {
     { href: '/', label: 'Home' },
     { href: '/resources', label: 'Resources' },
     { href: '/testimonies', label: 'Testimonies' },
-    { href: '/empowerment', label: 'Empowerment' },
+    // { href: '/empowerment', label: 'Empowerment' },
     { href: '/about', label: 'About' },
     { href: '/contact', label: 'Contact' },
   ]
