@@ -9,6 +9,8 @@ import Link from 'next/link'
 import { sermons } from '@/lib/mock-data'
 import { formatDate } from '@/lib/date-utils'
 import { SkeletonDetailPage } from '@/components/skeleton-card'
+import { useQuery } from "@tanstack/react-query";
+
 import {
   Heart,
   MessageCircle,
@@ -17,6 +19,7 @@ import {
   ArrowLeft,
   Send,
   Zap,
+  Eye
 } from 'lucide-react'
 import { Share2 } from 'lucide-react'
 
@@ -33,7 +36,14 @@ interface SermonState {
 }
 
 export default function SermonDetailsPage({ params }: PageProps) {
+
+  const resolvedParams = require("react").use(params);
+  
+   const { data: sermonData  } = useQuery<any>({
+    queryKey: ["sermons", `${resolvedParams.id}`],
+  })
   const [sermonId, setSermonId] = useState<string>('')
+  const [sermon, setSermon] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [state, setState] = useState<SermonState>({
     reactions: { heart: 0, amen: 0, inspiring: 0 },
@@ -41,28 +51,21 @@ export default function SermonDetailsPage({ params }: PageProps) {
     liked: false,
   })
   const [newComment, setNewComment] = useState('')
-
+const [commentName, setCommentName] = useState('')
+  
   useEffect(() => {
+ if (sermonData) {
+  setSermon(sermonData)
+ }
+
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
-  }, [])
-  const [commentName, setCommentName] = useState('')
+  }, [sermonData,params])
+  
 
-  useEffect(() => {
-    params.then((p) => {
-      setSermonId(p.id)
-      const sermon = sermons.find((s) => s.id === p.id)
-      if (sermon) {
-        setState({
-          reactions: sermon.reactions || { heart: 0, amen: 0, inspiring: 0 },
-          comments: [],
-          liked: false,
-        })
-      }
-    })
-  }, [params])
+  
 
-  const sermon = sermons.find((s) => s.id === sermonId)
+  
 
   if (isLoading) {
     return (
@@ -137,7 +140,7 @@ export default function SermonDetailsPage({ params }: PageProps) {
   return (
     <>
       <Navigation />
-      <main className="min-h-screen bg-background">
+      <main className="min-h-screen relative bg-background">
         <div className="max-w-4xl mx-auto px-4 py-12">
           {/* Back Link */}
           <Link
@@ -158,14 +161,14 @@ export default function SermonDetailsPage({ params }: PageProps) {
               <span>•</span>
               <span>{formatDate(sermon.date)}</span>
               <span>•</span>
-              <span>{sermon.passage}</span>
+              <span>{sermon.scripture}</span>
               <span>•</span>
               <span>{sermon.duration}</span>
             </div>
           </div>
 
           {/* Media Player */}
-          {(sermon.videoId || sermon.videoUrl || sermon.audioUrl) && (
+          {(sermon.videoId || sermon.videoUrl?.url || sermon.audioUrl?.url) && (
             <div className="bg-black rounded-lg overflow-hidden mb-8">
               {sermon.videoId && (
                 <div className="aspect-video">
@@ -179,11 +182,11 @@ export default function SermonDetailsPage({ params }: PageProps) {
                   />
                 </div>
               )}
-              {sermon.videoUrl && !sermon.videoId && (
+              {sermon.videoUrl?.url && !sermon.videoId && (
                 <div className="aspect-video">
                   <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                     <ReactPlayer
-                      url={sermon.videoUrl}
+                      url={sermon.videoUrl?.url}
                       controls
                       width="100%"
                       height="100%"
@@ -192,7 +195,7 @@ export default function SermonDetailsPage({ params }: PageProps) {
                   </div>
                 </div>
               )}
-              {sermon.audioUrl && !sermon.videoId && !sermon.videoUrl && (
+              {sermon.audioUrl?.url && !sermon.videoId && !sermon.videoUrl?.url && (
                 <div className="bg-linaer-to-br from-primary/10 to-accent/10 p-8 flex items-center justify-center min-h-48">
                   <div className="text-center">
                     <Music className="text-primary mx-auto mb-4" size={48} />
@@ -200,7 +203,7 @@ export default function SermonDetailsPage({ params }: PageProps) {
                     <audio
                       controls
                       className="w-full max-w-md"
-                      src={sermon.audioUrl}
+                      src={sermon.audioUrl?.url}
                     />
                   </div>
                 </div>
@@ -215,7 +218,7 @@ export default function SermonDetailsPage({ params }: PageProps) {
           </div>
 
           {/* Reactions Bar */}
-          <div className="mb-8">
+          <div className="mb-8 w-full text-right">
             <div className="inline-flex items-center gap-1 bg-muted/10 p-2 rounded-full">
               <button
                 onClick={handleLike}
@@ -229,23 +232,23 @@ export default function SermonDetailsPage({ params }: PageProps) {
                 <span className="text-sm font-medium">{state.reactions.heart || 0}</span>
               </button>
               <button
-                onClick={() => handleReaction('amen')}
-                className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-primary/20 text-foreground transition"
+                
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition ${
+                  state.liked
+                    ? 'bg-accent text-white'
+                    : 'hover:bg-primary/20 text-foreground'
+                }`}
               >
-                <Zap size={18} />
-                <span className="text-sm font-medium">Amen ({state.reactions.amen || 0})</span>
+                <Eye size={18} fill={state.liked ? 'currentColor' : 'none'} />
+                <span className="text-sm font-medium">{sermon.views.length || 0}</span>
               </button>
-              <button
-                onClick={() => handleReaction('inspiring')}
-                className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-primary/20 text-foreground transition"
-              >
-                <span className="text-sm font-medium">Inspiring ({state.reactions.inspiring || 0})</span>
-              </button>
+               
+               
               <button
                 onClick={() => {
                   const url = (typeof window !== 'undefined')
-                    ? `${window.location.origin}/resources/${sermon.id}`
-                    : `/resources/${sermon.id}`
+                    ? `${window.location.origin}/resources/${sermon._id}`
+                    : `/resources/${sermon._id}`
                   if (navigator.share) {
                     navigator.share({ title: sermon.title, url }).catch(() => {})
                   } else if (navigator.clipboard) {
@@ -259,20 +262,22 @@ export default function SermonDetailsPage({ params }: PageProps) {
                 className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-primary/20 text-foreground transition"
               >
                 <Share2 size={18} />
-                <span className="text-sm font-medium">Share</span>
+                <span className="text-sm font-medium">Shares: {sermon.shares.length}</span>
               </button>
             </div>
           </div>
 
-          {/* Comments Section */}
-          <div className="bg-card rounded-lg border border-border p-8">
+          
+        </div>
+        {/* Comments Section */}
+          <div className="bg-card sm:absolute top-80 left-10 sm:w-100 rounded-lg border border-border p-8">
             <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
               <MessageCircle size={24} />
-              Comments ({state.comments.length})
+              Comments ({sermon.comments.length})
             </h2>
 
             {/* Add Comment Form */}
-            <div className="mb-8 p-6 bg-muted/20 rounded-lg border border-border">
+            <div className="mb-8 p-6    border-b border-border">
               <input
                 type="text"
                 placeholder="Your name (optional)"
@@ -297,15 +302,15 @@ export default function SermonDetailsPage({ params }: PageProps) {
             </div>
 
             {/* Comments List */}
-            {state.comments.length === 0 ? (
+            {sermon.comments.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 No comments yet. Be the first to share your thoughts!
               </p>
             ) : (
               <div className="space-y-4">
-                {state.comments.map((comment) => (
+                {sermon.comments.map((comment) => (
                   <div
-                    key={comment.id}
+                    key={comment._id}
                     className="p-4 bg-background border border-border rounded-lg"
                   >
                     <div className="flex justify-between items-start mb-2">
@@ -318,7 +323,6 @@ export default function SermonDetailsPage({ params }: PageProps) {
               </div>
             )}
           </div>
-        </div>
       </main>
       <Footer />
     </>

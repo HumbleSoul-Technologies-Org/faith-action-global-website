@@ -529,7 +529,7 @@ export default function ResourcesPage() {
                   <div className="flex gap-3 flex-wrap">
                     <button
                       onClick={() => handleQuoteLike(quote._id)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm transition ${
+                      className={`flex items-center cursor-pointer gap-2 px-3 py-2 rounded-full text-sm transition ${
                         engagement.liked
                           ? "bg-accent text-white"
                           : "bg-muted hover:bg-muted/80 text-foreground"
@@ -539,22 +539,13 @@ export default function ResourcesPage() {
                         size={14}
                         fill={engagement.liked ? "currentColor" : "none"}
                       />
-                      <span>{engagement.likes}</span>
+                      <span>{quote.likes?.length}</span>
                     </button>
-                    <button
-                      onClick={() => handleQuoteReaction(quote._id, "inspire")}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted hover:bg-muted/80 text-foreground text-sm transition"
-                    >
-                      <span>✨</span>
-                      <span>{engagement.reactions.inspire || 0}</span>
-                    </button>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted text-muted-foreground text-sm">
-                      <Eye size={14} />
-                      <span>{engagement.views}</span>
-                    </div>
+                    
+                     
                     <button
                       onClick={() => handleShareQuote(quote)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted hover:bg-muted/80 text-foreground text-sm transition ml-auto"
+                      className="flex items-center cursor-pointer gap-2 px-3 py-2 rounded-full bg-muted hover:bg-muted/80 text-foreground text-sm transition ml-auto"
                     >
                       <Share2 size={14} />
                       Share
@@ -585,15 +576,18 @@ export default function ResourcesPage() {
             >
               <div className="flex items-center justify-between gap-2 mb-4">
                 <div className="flex items-center gap-2">
-                  <Calendar className="text-primary" size={20} />
+                 
                   <h3 className="text-lg font-bold text-foreground">
                     {devotional.title}
                   </h3>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">
+              <span className="flex items-center gap-1 text-xs text-muted-foreground mb-4">
+                <Calendar className="text-primary" size={20} />
+              <p className="text-sm text-muted-foreground  ">
+                
                 {formatDate(devotional.createdAt)}
-              </p>
+              </p></span>
               <div className="mb-4">
                 <p className="text-xs font-semibold text-primary mb-2">
                   Scripture: {devotional.scripture}
@@ -602,16 +596,14 @@ export default function ResourcesPage() {
                   {devotional.reflection}
                 </p>
               </div>
-              <div className="bg-primary/5 rounded p-4 border border-primary/20 mb-4">
+              {
+                devotional.prayer && <div className="bg-primary/5 rounded p-4 border border-primary/20 mb-4">
                 <p className="text-xs font-semibold text-primary mb-2">
                   Prayer
                 </p>
-                {
-                  devotional.prayer && <p className="text-sm text-foreground italic">
-                  {devotional?.prayer}
-                </p>
-                }
+                 {devotional?.prayer}
               </div>
+              }
 
               {/* Engagement Buttons */}
               <div className="flex gap-2 flex-wrap pt-4 border-t border-border">
@@ -625,24 +617,15 @@ export default function ResourcesPage() {
                 >
                   <Heart
                     size={12}
-                    fill={engagement.liked ? "currentColor" : "none"}
+                    fill={devotional.liked?.length ? "currentColor" : "none"}
                   />
-                  {engagement.likes}
+                  {devotional.likes?.length}
                 </button>
-                <button
-                  onClick={() =>
-                    handleDevotionalReaction(devotional._id, "inspire")
-                  }
-                  className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground text-xs transition"
-                >
-                  ✨ {engagement.reactions.inspire || 0}
-                </button>
-                <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted text-muted-foreground text-xs">
-                  <Eye size={12} /> {engagement.views}
-                </div>
+                 
+                
                 <button
                   onClick={() => handleShareDevotional(devotional)}
-                  className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground text-xs transition ml-auto"
+                  className="flex items-center cursor-pointer  gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground text-xs transition ml-auto"
                 >
                   <Share2 size={12} /> Share
                 </button>
