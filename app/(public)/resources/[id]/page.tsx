@@ -57,6 +57,78 @@ export default function SermonDetailsPage({ params }: PageProps) {
    
   const [newComment, setNewComment] = useState('')
 const [commentName, setCommentName] = useState('')
+  const [commentErrors, setCommentErrors] = useState({
+    name: '',
+    comment: '',
+  })
+  const [commentTouched, setCommentTouched] = useState({
+    name: false,
+    comment: false,
+  })
+
+  const validateCommentField = (name: string, value: string) => {
+    let error = ''
+
+    switch (name) {
+      case 'name':
+        if (value.trim() && value.trim().length < 2) {
+          error = 'Name must be at least 2 characters'
+        } else if (value.trim() && !/^[a-zA-Z\s]+$/.test(value.trim())) {
+          error = 'Name can only contain letters and spaces'
+        }
+        break
+
+      case 'comment':
+        if (!value.trim()) {
+          error = 'Comment is required'
+        } else if (value.trim().length < 5) {
+          error = 'Comment must be at least 5 characters'
+        } else if (value.trim().length > 500) {
+          error = 'Comment must be less than 500 characters'
+        }
+        break
+
+      default:
+        break
+    }
+
+    return error
+  }
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    if (name === 'commentName') setCommentName(value)
+    if (name === 'newComment') setNewComment(value)
+
+    // Clear error when user starts typing
+    if (commentErrors[name === 'commentName' ? 'name' : 'comment']) {
+      setCommentErrors((prev) => ({ ...prev, [name === 'commentName' ? 'name' : 'comment']: '' }))
+    }
+  }
+
+  const handleCommentBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    const fieldName = name === 'commentName' ? 'name' : 'comment'
+    setCommentTouched((prev) => ({ ...prev, [fieldName]: true }))
+
+    const error = validateCommentField(fieldName, value)
+    setCommentErrors((prev) => ({ ...prev, [fieldName]: error }))
+  }
+
+  const validateCommentForm = () => {
+    const newErrors = {
+      name: validateCommentField('name', commentName),
+      comment: validateCommentField('comment', newComment),
+    }
+
+    setCommentErrors(newErrors)
+    setCommentTouched({
+      name: true,
+      comment: true,
+    })
+
+    return !Object.values(newErrors).some(error => error !== '')
+  }
   
    const createUserId = async () => { 
     try {
@@ -123,7 +195,10 @@ const [commentName, setCommentName] = useState('')
  
 
   const handleAddComment = async() => {
-    if (!newComment.trim()) return
+    if (!validateCommentForm()) {
+      return
+    }
+
     try {
       setSaving(true)
       const commentData = {
@@ -135,6 +210,10 @@ const [commentName, setCommentName] = useState('')
       };
 
       await apiRequest('POST', '/comments/new', commentData)
+      setNewComment('')
+      setCommentName('')
+      setCommentErrors({ name: '', comment: '' })
+      setCommentTouched({ name: false, comment: false })
       
   
 } catch (error) {
@@ -356,21 +435,43 @@ const [commentName, setCommentName] = useState('')
             <div className="mb-8 p-6    border-b border-border">
               <input
                 type="text"
+                name="commentName"
                 placeholder="Your name (leave blank for Anonymous)"
                 value={commentName}
-                onChange={(e) => setCommentName(e.target.value)}
-                className="w-full px-4 py-2 mb-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                onChange={handleCommentChange}
+                onBlur={handleCommentBlur}
+                className={`w-full px-4 py-2 mb-3 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 ${
+                  commentErrors.name && commentTouched.name
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-border focus:ring-primary'
+                }`}
               />
+              {commentErrors.name && commentTouched.name && (
+                <p className="mt-1 mb-3 text-sm text-red-600">{commentErrors.name}</p>
+              )}
               <textarea
+                name="newComment"
                 placeholder="Share your thoughts about this sermon..."
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="w-full px-4 py-2 mb-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                onChange={handleCommentChange}
+                onBlur={handleCommentBlur}
+                className={`w-full px-4 py-2 mb-3 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 resize-none ${
+                  commentErrors.comment && commentTouched.comment
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-border focus:ring-primary'
+                }`}
                 rows={4}
               />
+              {commentErrors.comment && commentTouched.comment && (
+                <p className="mt-1 mb-3 text-sm text-red-600">{commentErrors.comment}</p>
+              )}
+              <p className="text-xs text-muted-foreground mb-3">
+                {newComment.length}/500 characters
+              </p>
               <button
                 onClick={handleAddComment}
-                className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition font-medium"
+                disabled={saving || !newComment.trim()}
+                className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? <>Posting Comment ... <Loader className='w-4 h-4 animate-spin'/></> : <>Post Comment</>}
               </button>

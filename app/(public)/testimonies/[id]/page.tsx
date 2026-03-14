@@ -108,6 +108,78 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
+  const [commentErrors, setCommentErrors] = useState({
+    name: '',
+    comment: '',
+  })
+  const [commentTouched, setCommentTouched] = useState({
+    name: false,
+    comment: false,
+  })
+
+  const validateCommentField = (name: string, value: string) => {
+    let error = ''
+
+    switch (name) {
+      case 'name':
+        if (value.trim() && value.trim().length < 2) {
+          error = 'Name must be at least 2 characters'
+        } else if (value.trim() && !/^[a-zA-Z\s]+$/.test(value.trim())) {
+          error = 'Name can only contain letters and spaces'
+        }
+        break
+
+      case 'comment':
+        if (!value.trim()) {
+          error = 'Comment is required'
+        } else if (value.trim().length < 5) {
+          error = 'Comment must be at least 5 characters'
+        } else if (value.trim().length > 500) {
+          error = 'Comment must be less than 500 characters'
+        }
+        break
+
+      default:
+        break
+    }
+
+    return error
+  }
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    if (name === 'commentName') setCommentName(value)
+    if (name === 'commentText') setCommentText(value)
+
+    // Clear error when user starts typing
+    if (commentErrors[name === 'commentName' ? 'name' : 'comment']) {
+      setCommentErrors((prev) => ({ ...prev, [name === 'commentName' ? 'name' : 'comment']: '' }))
+    }
+  }
+
+  const handleCommentBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    const fieldName = name === 'commentName' ? 'name' : 'comment'
+    setCommentTouched((prev) => ({ ...prev, [fieldName]: true }))
+
+    const error = validateCommentField(fieldName, value)
+    setCommentErrors((prev) => ({ ...prev, [fieldName]: error }))
+  }
+
+  const validateCommentForm = () => {
+    const newErrors = {
+      name: validateCommentField('name', commentName),
+      comment: validateCommentField('comment', commentText),
+    }
+
+    setCommentErrors(newErrors)
+    setCommentTouched({
+      name: true,
+      comment: true,
+    })
+
+    return !Object.values(newErrors).some(error => error !== '')
+  }
 
   if (!testimony) {
     return (
@@ -150,7 +222,9 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
   };
 
   const handleAddComment = async() => {
-    if (!commentText.trim()) return;
+    if (!validateCommentForm()) {
+      return
+    }
 
     try {
       setSaving(true);
@@ -166,6 +240,8 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
        
       setCommentText("");
       setCommentName("");
+      setCommentErrors({ name: '', comment: '' })
+      setCommentTouched({ name: false, comment: false })
       toast.success("Comment posted!", {
         description: "Your comment has been added successfully.",
       });
@@ -415,18 +491,39 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
             <div className="mb-8 pb-8 border-b border-border">
               <input
                 type="text"
+                name="commentName"
                 value={commentName}
-                onChange={(e) => setCommentName(e.target.value)}
+                onChange={handleCommentChange}
+                onBlur={handleCommentBlur}
                 placeholder="Your name (leave blank for Anonymous)"
-                className="w-full p-3 mb-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className={`w-full p-3 mb-3 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 ${
+                  commentErrors.name && commentTouched.name
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-border focus:ring-primary'
+                }`}
               />
+              {commentErrors.name && commentTouched.name && (
+                <p className="mt-1 mb-3 text-sm text-red-600">{commentErrors.name}</p>
+              )}
               <textarea
+                name="commentText"
                 value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
+                onChange={handleCommentChange}
+                onBlur={handleCommentBlur}
                 placeholder="Share your thoughts and encouragement..."
-                className="w-full p-4 border border-border rounded-lg bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                className={`w-full p-4 border rounded-lg bg-background text-foreground resize-none focus:outline-none focus:ring-2 ${
+                  commentErrors.comment && commentTouched.comment
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-border focus:ring-primary'
+                }`}
                 rows={3}
               />
+              {commentErrors.comment && commentTouched.comment && (
+                <p className="mt-1 mb-3 text-sm text-red-600">{commentErrors.comment}</p>
+              )}
+              <p className="text-xs text-muted-foreground mb-3">
+                {commentText.length}/500 characters
+              </p>
               <button
                 onClick={handleAddComment}
                 disabled={!commentText.trim() || saving}
