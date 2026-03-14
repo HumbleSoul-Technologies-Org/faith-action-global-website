@@ -74,13 +74,13 @@ export default function DashboardHeader() {
             </button>
 
             {/* Logout Button */}
-            <button
+            <Link href='/'
               onClick={logout}
               className="flex items-center gap-2 px-3 py-2 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg transition"
             >
               <LogOut size={16} />
               Logout
-            </button>
+            </Link>
           </div>
         </div>
       </header>

@@ -24,6 +24,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/query-client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
+import { count } from "console";
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
@@ -257,9 +258,7 @@ document.title = "Resources - Faith Action Global";
         description: "Your like has been recorded.",
       });
     } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+       
       toast.error("Failed to like", {
         description: "Please try again later.",
       });
@@ -646,9 +645,9 @@ document.title = "Resources - Faith Action Global";
   );
 
   const tabs = [
-    { id: "sermons", label: "Sermons", content: sermonsContent },
-    { id: "quotes", label: "Gospel Quotes", content: quotesContent },
-    { id: "devotionals", label: "Word of Day", content: devotionalsContent },
+    { id: "sermons", label: "Sermons", content: sermonsContent ,count: sermons.length},
+    { id: "quotes", label: "Gospel Quotes", content: quotesContent ,count: quotes.length},
+    { id: "devotionals", label: "Word of Day", content: devotionalsContent ,count: devotionals.length},
   ];
 
   return (

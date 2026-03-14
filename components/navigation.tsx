@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState ,useEffect} from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
-
+import { useQuery } from '@tanstack/react-query'
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const { isLoggedIn } = useAuth()
@@ -20,13 +20,48 @@ export default function Navigation() {
     { href: '/contact', label: 'Contact' },
   ]
 
+  const { data: sermonData } = useQuery<any[]>({
+    queryKey: ['sermons', 'all'],
+  })
+  const { data: quoteData } = useQuery<any[]>({
+    queryKey: ['quotes', 'all'],
+  })
+  const { data: devotionalsData } = useQuery<any[]>({
+    queryKey: ['devotionals', 'all'],
+  })
+  const { data: testimonyData } = useQuery<any[]>({
+    queryKey: ['testimony', 'all'],
+  })
+
+  const [sermons, setSermons] = useState<any[]>([])
+  const [quotes, setQuotes] = useState<any[]>([])
+  const [devotionals, setDevotionals] = useState<any[]>([])
+  const [testimonies, setTestimonies] = useState<any[]>([])
+
+  useEffect(() => { 
+    if (sermonData) {
+       setSermons(sermonData)
+    }
+    if (quoteData) {
+       setQuotes(quoteData)
+    }
+    if (devotionalsData) {
+       setDevotionals(devotionalsData)
+    }
+    if (testimonyData) {
+       setTestimonies(testimonyData)
+      
+    }
+  }, [sermonData, quoteData, devotionalsData, testimonyData])
+  
+
   return (
     <nav className="bg-white border-b border-border sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link href="/" className="text-lg sm:text-2xl flex items-center  font-serif font-bold text-primary">
-            <img src="/logo.png" alt="Faith Action Global" className="w-15 h-10 sm:h-20 sm:w-30 sm:-mr-5" />Faith Action Global
+            <img src="/logo.png" alt="Faith Action Global" className="w-15 h-10 sm:h-15 sm:w-21 sm:-mr-2" />Faith Action Global
           </Link>
 
           {/* Desktop Navigation */}
@@ -73,11 +108,15 @@ export default function Navigation() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden text-foreground"
+            className="md:hidden relative text-foreground"
             aria-label="Toggle menu"
           >
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
+            
+            {isOpen ? <X size={24} /> : <><span className='w-3 h-3 animate-pulse absolute -top-1 -right-1 rounded-full bg-primary'/><Menu size={24} /></>}
+            
+            
           </button>
+          
         </div>
 
         {/* Mobile Navigation */}
@@ -99,6 +138,8 @@ export default function Navigation() {
                   onClick={() => setIsOpen(false)}
                 >
                   {link.label}
+                  {link.label === 'Resources' && ` (${sermons.length + quotes.length + devotionals.length})`}
+                  {link.label === 'Testimonies' && ` (${testimonies.length})`}
                 </Link>
               )
             })}
