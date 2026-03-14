@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { notifications } from '@/lib/mock-data'
 import { X, Bell, MessageSquare, ThumbsUp, Eye, AlertCircle, MessageCircle } from 'lucide-react'
 import { formatDate } from '@/lib/date-utils'
-
+import { use, useEffect,useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { apiRequest } from '@/lib/query-client'
 interface NotificationsSidebarProps {
   isOpen: boolean
   onClose: () => void
@@ -27,7 +29,31 @@ export default function NotificationsSidebar({ isOpen, onClose }: NotificationsS
         return <Bell size={16} className="text-gray-500" />
     }
   }
+  
+  const [notifications, setNotifications] = useState<any[]>([])
 
+  const { data: fetchedNotifications } = useQuery<any[]>({
+    queryKey: ['notifications','all'],
+  })
+
+  useEffect(() => {
+    if (fetchedNotifications) {
+      setNotifications(fetchedNotifications)
+    }
+  }, [fetchedNotifications])
+  
+  const handleRead = async (id: string) => { 
+    try {
+      await apiRequest('PUT', `/notifications/${id}/read`)
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n._id === id ? { ...n, isSeen: true } : n
+        )
+      )
+    } catch (error) {
+      
+    }
+  }
   return (
     <>
       {/* Overlay */}
@@ -59,19 +85,19 @@ export default function NotificationsSidebar({ isOpen, onClose }: NotificationsS
         <div className="overflow-y-auto h-[calc(100vh-80px)]">
           {notifications.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
-              No notifications
+              No notifications Yet!
             </div>
           ) : (
             <div className="divide-y divide-border">
               {notifications.map((notification) => (
                 <div
-                  key={notification.id}
+                  key={notification._id}
                   className={`p-4 hover:bg-muted transition ${
                     notification.isSeen ? 'opacity-60' : 'bg-primary/5'
                   }`}
                 >
                   {notification.href ? (
-                    <Link href={notification.href} onClick={onClose} className="block">
+                    <Link href={notification.href} onClick={() => { onClose(); handleRead(notification._id); } } className="block">
                       <div className="flex gap-3">
                         <div className="shrink-0 mt-1">
                           {getIcon(notification.type)}
@@ -84,7 +110,7 @@ export default function NotificationsSidebar({ isOpen, onClose }: NotificationsS
                             {notification.description}
                           </p>
                           <p className="text-xs text-muted-foreground mt-2">
-                            {formatDate(notification.date)}
+                            {formatDate(notification.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -102,7 +128,7 @@ export default function NotificationsSidebar({ isOpen, onClose }: NotificationsS
                           {notification.description}
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
-                          {formatDate(notification.date)}
+                          {formatDate(notification.createdAt)}
                         </p>
                       </div>
                     </div>

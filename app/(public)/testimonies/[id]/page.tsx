@@ -438,7 +438,9 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
 
             {/* Comments List */}
             <div className="space-y-6">
-              {testimony.comments.map((comment:any) => (
+              {testimony.comments
+                .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((comment:any) => (
                 <div
                   key={comment._id}
                   className="border-b relative border-border pb-6 last:border-b-0"

@@ -52,7 +52,7 @@ export default function SermonDetailsPage({ params }: PageProps) {
   
   const [sermon, setSermon] = useState<any>(null)
   const [saving, setSaving] = useState<any>(false)
-  const [processing, setProcessing] = useState<any>(false)
+  const [processing, setProcessing] = useState<any>('')
   const [isLoading, setIsLoading] = useState(true)
    
   const [newComment, setNewComment] = useState('')
@@ -191,7 +191,7 @@ const [commentName, setCommentName] = useState('')
   }
   const likeComment = async(commentId: string) => {
     try {
-       setProcessing(true)
+       setProcessing(commentId)
       await apiRequest('POST', `/comments/${commentId}/like`, { uuid: userId })
       setSermon((prev: any) => ({
         ...prev,
@@ -212,7 +212,7 @@ const [commentName, setCommentName] = useState('')
       console.log(error);
       console.log('====================================');
      } finally {
-       setProcessing(false)
+       setProcessing('')
      }
   }
 
@@ -383,7 +383,9 @@ const [commentName, setCommentName] = useState('')
               </p>
             ) : (
               <div className="space-y-4">
-                {sermon.comments.map((comment:any,i:number) => (
+                {sermon.comments
+                  .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .map((comment:any,i:number) => (
                   <div
                     key={i}
                     className="p-4 bg-background pb-3 relative border border-border rounded-lg"
@@ -395,7 +397,7 @@ const [commentName, setCommentName] = useState('')
                     </div>
                     <p className="text-foreground mb-5 text-justify leading-relaxed">{comment.comment}</p>
                      <p className="text-xs absolute -top-1 right-2  mt-5 text-muted-foreground"><Clock className="w-4 h-4 inline mr-2" />{timeAgo(comment.createdAt)}</p>
-                     {processing ? <Loader className='w-4 h-4 animate-spin absolute bottom-2 right-2' /> :<p className="text-xs items-center justify-center absolute bottom-1 right-2  mt-5 text-muted-foreground"><ThumbsUpIcon onClick={()=>likeComment(comment._id)} className={`w-5 h-5 cursor-pointer ${comment.likes.includes(userId) ? 'text-primary fill-primary' : ''} inline mb-1 mr-1`} />: {comment.likes?.length} Likes</p>}
+                     {processing === comment._id ? <Loader className='w-4 h-4 animate-spin absolute bottom-2 right-2' /> :<p className="text-xs items-center justify-center absolute bottom-1 right-2  mt-5 text-muted-foreground"><ThumbsUpIcon onClick={()=>likeComment(comment._id)} className={`w-5 h-5 cursor-pointer ${comment.likes.includes(userId) ? 'text-primary fill-primary' : ''} inline mb-1 mr-1`} />: {comment.likes?.length} Likes</p>}
                     
                   </div>
                 ))}

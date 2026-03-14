@@ -4,7 +4,6 @@ import { useState,useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { Mail, Bell, LogOut } from 'lucide-react'
-import {notifications } from '@/lib/mock-data'
 import NotificationsSidebar from './notifications-sidebar'
 import { useQuery } from '@tanstack/react-query'
 
@@ -12,8 +11,13 @@ export default function DashboardHeader() {
   const { data:messageData } = useQuery<any[]>({
     queryKey: ['messages','all'],
   })
+  const { data:notificationData } = useQuery<any[]>({
+    queryKey: ['notifications','all'],
+  })
 
-    const [messages, setMessages] = useState<any[]>([])
+  const [messages, setMessages] = useState<any[]>([])
+    const [notifications, setNotifications] = useState<any[]>([])
+  
   
   const { logout, username } = useAuth()
   const [showNotifications, setShowNotifications] = useState(false)
@@ -23,8 +27,17 @@ export default function DashboardHeader() {
    useEffect(() => { 
     if (messageData) {
        setMessages(messageData)
-    }
-  }, [messageData])
+     }
+     
+     if (notificationData) {
+       setNotifications(notificationData)
+       console.log('====================================');
+       console.log(notificationData);
+       console.log('====================================');
+     }
+
+     
+  }, [messageData,notificationData])
 
   return (
     <>
@@ -54,7 +67,7 @@ export default function DashboardHeader() {
             >
               <Bell size={20} className="text-foreground" />
               {unseenNotifications > 0 && (
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-accent rounded-full">
+                <span className="absolute top-2 right-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-accent rounded-full">
                   {unseenNotifications}
                 </span>
               )}
