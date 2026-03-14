@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { notifications } from '@/lib/mock-data'
-import { X, Bell, MessageSquare, ThumbsUp, Eye, AlertCircle } from 'lucide-react'
+import { X, Bell, MessageSquare, ThumbsUp, Eye, AlertCircle, MessageCircle } from 'lucide-react'
 import { formatDate } from '@/lib/date-utils'
 
 interface NotificationsSidebarProps {
@@ -16,7 +16,7 @@ export default function NotificationsSidebar({ isOpen, onClose }: NotificationsS
       case 'message':
         return <MessageSquare size={16} className="text-blue-500" />
       case 'comment':
-        return <MessageSquare size={16} className="text-purple-500" />
+        return <MessageCircle size={16} className="text-purple-500" />
       case 'like':
         return <ThumbsUp size={16} className="text-red-500" />
       case 'view':
@@ -73,7 +73,7 @@ export default function NotificationsSidebar({ isOpen, onClose }: NotificationsS
                   {notification.href ? (
                     <Link href={notification.href} onClick={onClose} className="block">
                       <div className="flex gap-3">
-                        <div className="flex-shrink-0 mt-1">
+                        <div className="shrink-0 mt-1">
                           {getIcon(notification.type)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -91,7 +91,7 @@ export default function NotificationsSidebar({ isOpen, onClose }: NotificationsS
                     </Link>
                   ) : (
                     <div className="flex gap-3">
-                      <div className="flex-shrink-0 mt-1">
+                      <div className="shrink-0 mt-1">
                         {getIcon(notification.type)}
                       </div>
                       <div className="flex-1 min-w-0">

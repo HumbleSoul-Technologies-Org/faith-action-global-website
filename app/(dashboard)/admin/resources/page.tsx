@@ -121,7 +121,7 @@ export default function ResourcesPage() {
 
   useEffect(() => {
  if (allSermons) {
-  setSermons(allSermons.sermons)
+  setSermons(allSermons)
     }
     
     if (allQuotes) {

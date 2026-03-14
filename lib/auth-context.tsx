@@ -5,16 +5,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 interface AuthContextType {
   isLoggedIn: boolean
   username: string | null
-  login: (username: string, password: string) => boolean
+  login: (email: string, password: string) => boolean
   logout: () => void
   isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-// Hardcoded credentials
-const VALID_USERNAME = 'admin'
-const VALID_PASSWORD = 'password123'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -36,16 +32,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false)
   }, [])
 
-  const login = (inputUsername: string, inputPassword: string) => {
-    if (inputUsername === VALID_USERNAME && inputPassword === VALID_PASSWORD) {
+  const login = (email: string, password: string): boolean => {
+    const validEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
+    const validPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD
+
+    if (email === validEmail && password === validPassword) {
       setIsLoggedIn(true)
-      setUsername(inputUsername)
+      setUsername(email)
       // Persist to localStorage
       localStorage.setItem(
         'authState',
         JSON.stringify({
           isLoggedIn: true,
-          username: inputUsername,
+          username: email,
         })
       )
       return true
