@@ -73,7 +73,7 @@ if(quotesData) setQuotes(quotesData);
                 href="/testimonies"
                 className="px-8 py-3 border-2 border-white text-white rounded-md hover:bg-white hover:text-primary transition-all font-bold"
               >
-                Read Testimonies
+                View Testimonies
               </Link>
             </div>
           </div>
