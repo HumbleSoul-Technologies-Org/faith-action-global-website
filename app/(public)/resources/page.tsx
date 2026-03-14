@@ -112,8 +112,8 @@ export default function ResourcesPage() {
 
   const filteredSermons = sermons?.filter((sermon) => {
     if (sermonFilter === "all") return true;
-    if (sermonFilter === "video") return sermon.videoId || sermon.videoUrl.url;
-    if (sermonFilter === "audio") return sermon.audioUrl.url || [];
+    if (sermonFilter === "video") return sermon.videoId || sermon.videoUrl?.url;
+    if (sermonFilter === "audio") return typeof sermon.audioUrl === "object" && sermon.audioUrl?.url;
     return true;
   });
 
@@ -139,43 +139,7 @@ export default function ResourcesPage() {
     return sermonStates[sermonId];
   };
 
-  const handleReaction = (sermonId: string, reactionType: string) => {
-    setSermonStates((prev) => ({
-      ...prev,
-      [sermonId]: {
-        ...prev[sermonId],
-        reactions: {
-          ...prev[sermonId].reactions,
-          [reactionType]: (prev[sermonId].reactions[reactionType] || 0) + 1,
-        },
-      },
-    }));
-  };
-
-  const handleAddComment = (sermonId: string) => {
-    const message = commentInputs[sermonId] || "";
-    if (!message.trim()) return;
-
-    setSermonStates((prev) => ({
-      ...prev,
-      [sermonId]: {
-        ...prev[sermonId],
-        comments: [
-          ...prev[sermonId].comments,
-          {
-            id: Date.now().toString(),
-            name: "Anonymous",
-            message,
-            date: new Date().toLocaleDateString(),
-          },
-        ],
-      },
-    }));
-    setCommentInputs((prev) => ({
-      ...prev,
-      [sermonId]: "",
-    }));
-  };
+  
 
   const getQuoteEngagement = (quoteId: string, quote: any): EngagementState => {
     if (!quoteEngagement[quoteId]) {
@@ -200,18 +164,7 @@ export default function ResourcesPage() {
     return quoteEngagement[quoteId];
   };
 
-  const handleQuoteReaction = (quoteId: string, reactionType: string) => {
-    setQuoteEngagement((prev) => ({
-      ...prev,
-      [quoteId]: {
-        ...prev[quoteId],
-        reactions: {
-          ...prev[quoteId].reactions,
-          [reactionType]: (prev[quoteId].reactions[reactionType] || 0) + 1,
-        },
-      },
-    }));
-  };
+  
 
   const handleQuoteLike = (quoteId: string) => {
    
@@ -237,47 +190,8 @@ export default function ResourcesPage() {
     }
   };
 
-  const getDevotionalEngagement = (
-    devotionalId: string,
-    devotional: any,
-  ): EngagementState => {
-    if (!devotionalEngagement[devotionalId]) {
-      setDevotionalEngagement((prev) => ({
-        ...prev,
-        [devotionalId]: {
-          views: devotional.views || 0,
-          likes: devotional.likes || 0,
-          liked: false,
-          reactions: devotional.reactions || { love: 0, inspire: 0, pray: 0 },
-        },
-      }));
-      return (
-        devotionalEngagement[devotionalId] || {
-          views: devotional.views || 0,
-          likes: devotional.likes || 0,
-          liked: false,
-          reactions: devotional.reactions || { love: 0, inspire: 0, pray: 0 },
-        }
-      );
-    }
-    return devotionalEngagement[devotionalId];
-  };
-
-  const handleDevotionalReaction = (
-    devotionalId: string,
-    reactionType: string,
-  ) => {
-    setDevotionalEngagement((prev) => ({
-      ...prev,
-      [devotionalId]: {
-        ...prev[devotionalId],
-        reactions: {
-          ...prev[devotionalId].reactions,
-          [reactionType]: (prev[devotionalId].reactions[reactionType] || 0) + 1,
-        },
-      },
-    }));
-  };
+  
+   
 
   const handleDevotionalLike = (devotionalId: string) => {
     apiRequest("POST", `/devotionals/${devotionalId}/likes`, { uuid: userId });

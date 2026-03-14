@@ -119,16 +119,7 @@ const [commentName, setCommentName] = useState('')
     )
   }
 
-  const handleReaction = (reactionType: string) => {
-    setState((prev) => ({
-      ...prev,
-      reactions: {
-        ...prev.reactions,
-        [reactionType]: (prev.reactions[reactionType] || 0) + 1,
-      },
-    }))
-  }
-
+  
  
 
   const handleAddComment = async() => {
@@ -172,16 +163,7 @@ const [commentName, setCommentName] = useState('')
   console.log(error);
   console.log('====================================');
 }
-    // setState((prev) => ({
-    //   ...prev,
-    //   liked: !prev.liked,
-    //   reactions: {
-    //     ...prev.reactions,
-    //     heart: prev.liked
-    //       ? (prev.reactions.heart || 0) - 1
-    //       : (prev.reactions.heart || 0) + 1,
-    //   },
-    // }))
+     
   }
   const handleShare = async() => {
     try {

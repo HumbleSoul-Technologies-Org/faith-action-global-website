@@ -6,9 +6,11 @@ import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import { testimonies } from "@/lib/mock-data";
-import { formatDate } from "@/lib/date-utils";
+import { formatDate, timeAgo } from "@/lib/date-utils";
 import { SkeletonDetailPage } from "@/components/skeleton-card";
 import { useQuery } from "@tanstack/react-query";
+import { v4 as uuidv4 } from "uuid";
+
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
@@ -26,19 +28,24 @@ import {
   Zap,
   Hand,
   Eye,
+  ThumbsUpIcon,
 } from "lucide-react";
 import { set } from "react-hook-form";
+import { apiRequest } from "@/lib/query-client";
+import test from "node:test";
+import { api } from "@/lib/api";
+import { tryLoadManifestWithRetries } from "next/dist/server/load-components";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 interface Comment {
-  id: string;
-  author: string;
-  text: string;
-  timestamp: string;
-  likes: number;
+  _id: string;
+  name: string;
+  comment: string;
+  createdAt: string;
+  likes: string[];
 }
 
 interface Reaction {
@@ -59,13 +66,32 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
   const [testimony, setTestimony] = useState<any|null>(null);
   const [likeCount, setLikeCount] = useState(testimony?.likes.length || 0);
   const [views, setViews] = useState(testimony?.views.length || 0);
+  const [userId, setUserId] = useState<string>("");
+ const createUserId = async () => {
+    try {
+      const savedId = localStorage.getItem("userId");
+      if (savedId) {
+        setUserId(savedId);
+      } else {
+        const newId = uuidv4();
+        localStorage.setItem("userId", newId);
+        setUserId(newId);
+      }
+    } catch (error) {
+      const savedId = localStorage.getItem("userId");
+      if (savedId) {
+        setUserId(savedId);
+      }
+    }
+  };
+
 
   useEffect(() => {
     if (testimonyData) {
       setTestimony(testimonyData);
       
     }
-    
+    createUserId()
    
   }, [testimonyData]);
   const [reactions, setReactions] = useState<Reaction[]>([
@@ -74,23 +100,12 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
     { type: "amen", count: testimony?.reactions?.amen || 0 },
   ]);
   const [comments, setComments] = useState<Comment[]>([
-    {
-      id: "1",
-      author: "Sarah Miller",
-      text: "This testimony is so inspiring! Thank you for sharing your journey.",
-      timestamp: "2 hours ago",
-      likes: 12,
-    },
-    {
-      id: "2",
-      author: "James Wilson",
-      text: "God is truly amazing. Grateful for your faithfulness.",
-      timestamp: "5 hours ago",
-      likes: 8,
-    },
+    testimony?.comments||[]
   ]);
   const [commentText, setCommentText] = useState("");
+  const [commentName, setCommentName] = useState("");
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
 
   if (!testimony) {
@@ -113,65 +128,99 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
     );
   }
 
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikeCount(liked ? likeCount - 1 : likeCount + 1);
+  
+
+  const handleLikes = () => {
+    apiRequest("POST", `/testimony/${testimony._id}/likes`, { uuid: userId })
+    setTestimony((prev: any) => {
+      if (!prev) return prev;
+      const hasLiked = prev.likes?.includes(userId);
+      const updatedLikes = hasLiked
+        ? prev.likes.filter((id: string) => id !== userId)
+        : [...(prev.likes || []), userId];
+      return {
+        ...prev,
+        likes: updatedLikes,
+      };
+    });
   };
 
-  const handleReaction = (type: string) => {
-    setReactions(
-      reactions.map((r) =>
-        r.type === type
-          ? { ...r, count: r.count + (selectedReaction === type ? -1 : 1) }
-          : r,
-      ),
-    );
-    setSelectedReaction(selectedReaction === type ? null : type);
-  };
-
-  const handleAddComment = () => {
+  const handleAddComment = async() => {
     if (!commentText.trim()) return;
 
-    const newComment: Comment = {
-      id: String(comments.length + 1),
-      author: "You",
-      text: commentText,
-      timestamp: "Just now",
-      likes: 0,
-    };
-    setComments([newComment, ...comments]);
-    setCommentText("");
-  };
+    try {
+      setSaving(true);
+      const newComment = {
+        name: commentName.trim() || "Anonymous",
+        comment: commentText.trim(),
+        type: "testimony",
+        typeId: testimony._id,
+        uuid:userId
+      }
 
-  const handleShareReaction = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    alert("Link copied to clipboard!");
-  };
-
-  const handleShare = (platform: string) => {
-    const text = `Check out this inspiring testimony: ${testimony.title}`;
-    const url = window.location.href;
-
-    if (platform === "copy") {
-      navigator.clipboard.writeText(url);
-      alert("Link copied to clipboard!");
-    } else if (platform === "email") {
-      window.open(
-        `mailto:?subject=${testimony.title}&body=${text}%0D%0A${url}`,
-      );
-    } else if (platform === "facebook") {
-      window.open(
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      );
-    } else if (platform === "twitter") {
-      window.open(
-        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-      );
+      await apiRequest("POST", `/comments/new`, newComment);
+       
+      setCommentText("");
+      setCommentName("");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    } finally {
+      setSaving(false);
     }
-    setShowShareMenu(false);
   };
 
+  const handleShareReaction = async (testimonyId: string) => {
+    const shareUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/testimonies/${testimonyId}`
+        : "";
+
+    if (shareUrl && navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl);
+       
+    }
+
+    try {
+      await apiRequest("POST", `/testimony/${testimonyId}/shares`, {
+        uuid: userId,
+      });
+      setTestimony((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          shares: [...(prev.shares || []), userId],
+        };
+      });
+    } catch (error) {
+      console.error("Error recording share:", error);
+    }
+  };
+
+
+  const hundleLikeComment = async (commentId: string) => { 
+    try {
+      await apiRequest("POST", `/comments/${commentId}/like`, {
+        uuid: userId,
+      });
+      setComments((prevComments) =>
+        prevComments.map((comment) =>
+          comment._id === commentId
+            ? {
+                ...comment,
+              likes: comment.likes?.includes(userId)
+                ? comment.likes.filter((id) => id !== userId)
+                : [...(comment.likes || []), userId],
+            }
+            : comment
+        )
+      );
+    } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+    }
+  }
+  
   if (isLoading) {
     return (
       <>
@@ -223,71 +272,15 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
                   <p className="text-xl text-muted-foreground font-medium mb-2">
                     {testimony.name}
                   </p>
-                  {testimony.date && (
+                  {testimony.createdAt && (
                     <p className="text-sm text-muted-foreground">
-                      {formatDate(testimony.date)} •{" "}
+                      {formatDate(testimony.createdAt)} •{" "}
                       {testimony.category || "Personal Story"}
                     </p>
                   )}
                 </div>
 
-                {/* Action Buttons */}
-                <div className=" hidden gap-3 flex-wrap">
-                  <button
-                    onClick={handleLike}
-                    className={`flex items-center cursor-pointer gap-2 px-4 py-2 rounded-md border transition-all ${
-                      liked
-                        ? "bg-primary/10 border-primary text-primary"
-                        : "bg-muted border-border text-muted-foreground hover:border-primary"
-                    }`}
-                  >
-                    <Heart size={18} fill={liked ? "currentColor" : "none"} />
-                    <span className="font-medium">{likeCount}</span>
-                  </button>
-
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowShareMenu(!showShareMenu)}
-                      className="flex items-center cursor-pointer gap-2 px-4 py-2 rounded-md border border-border text-muted-foreground hover:border-primary transition-all"
-                    >
-                      <Share2 size={18} />
-                      Share
-                    </button>
-
-                    {showShareMenu && (
-                      <div className="absolute top-12 right-0 bg-white border border-border rounded-lg shadow-lg z-50">
-                        <button
-                          onClick={() => handleShare("copy")}
-                          className="flex items-center cursor-pointer gap-3 px-4 py-2 hover:bg-muted w-full text-left"
-                        >
-                          <Copy size={16} />
-                          Copy Link
-                        </button>
-                        <button
-                          onClick={() => handleShare("email")}
-                          className="flex items-center cursor-pointer gap-3 px-4 py-2 hover:bg-muted w-full text-left"
-                        >
-                          <Mail size={16} />
-                          Email
-                        </button>
-                        <button
-                          onClick={() => handleShare("facebook")}
-                          className="flex items-center cursor-pointer gap-3 px-4 py-2 hover:bg-muted w-full text-left"
-                        >
-                          <Facebook size={16} />
-                          Facebook
-                        </button>
-                        <button
-                          onClick={() => handleShare("twitter")}
-                          className="flex items-center cursor-pointer gap-3 px-4 py-2 hover:bg-muted w-full text-left"
-                        >
-                          <Twitter size={16} />
-                          Twitter
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                 
               </div>
 
               {/* Media Section */}
@@ -353,41 +346,33 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
               Reactions
             </h2>
             <div className="flex gap-3 flex-wrap">
-              {[
-                { type: "heart", icon: Heart, label: "Love", color: "#e74c3c" },
-                 
-              ].map((reaction) => {
-                const count =
-                  reactions.find((r) => r.type === reaction.type)?.count || 0;
-                const Icon = reaction.icon;
-                return (
-                  <button
-                    key={reaction.type}
-                    onClick={() => handleReaction(reaction.type)}
-                    className={`flex items-center gap-2 px-4 py-2 cursor-pointer rounded-full border transition-all ${
-                      selectedReaction === reaction.type
-                        ? "bg-primary/10 border-primary"
+               
+              <button onClick={() => handleLikes()}
+                
+                className={`flex cursor-pointer items-center gap-2 px-4 py-2 rounded-full border border-border bg-muted text-muted-foreground  ${
+                      testimony.likes?.includes(userId)
+                        ? "bg-primary border-0 text-white border-primary"
                         : "bg-muted border-border hover:border-primary"
                     }`}
-                  >
-                    <Icon size={18} />
-                    <span className="font-medium">{count}</span>
-                  </button>
-                );
-              })}
-              <button
-                disabled
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-muted text-muted-foreground cursor-default"
               >
-                <Eye size={18} />
-                <span className="font-medium">{views}</span>
+                
+                  
+                <Heart size={18} />
+                <span className="font-medium">{testimony.likes?.length}</span>
               </button>
               <button
-                onClick={handleShareReaction}
+                disabled
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-muted text-muted-foreground cursor-pointer"
+              >
+                <Eye size={18} />
+                <span className="font-medium">{testimony.views?.length}</span>
+              </button>
+              <button
+                onClick={() => handleShareReaction(testimony._id)}
                 className="flex items-center cursor-pointer gap-2 px-4 py-2 rounded-full border border-border bg-muted text-muted-foreground hover:border-primary transition-all"
               >
                 <Share2 size={18} />
-                <span className="font-medium">Share</span>
+                <span className="font-medium">Share: {testimony.shares?.length}</span>
               </button>
             </div>
           </div>
@@ -411,11 +396,18 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
           <div className="bg-card sm:absolute  sm:max-w-100 sm:top-10 left-10 rounded-lg border border-border p-8">
             <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
               <MessageCircle size={24} />
-              Comments ({comments.length})
+              Comments ({comments?.length})
             </h2>
 
             {/* Add Comment */}
             <div className="mb-8 pb-8 border-b border-border">
+              <input
+                type="text"
+                value={commentName}
+                onChange={(e) => setCommentName(e.target.value)}
+                placeholder="Your name (leave blank for Anonymous)"
+                className="w-full p-3 mb-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
               <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
@@ -425,37 +417,47 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
               />
               <button
                 onClick={handleAddComment}
-                disabled={!commentText.trim()}
+                disabled={!commentText.trim() || saving}
                 className="mt-3 px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
               >
-                Post Comment
+                {saving ? "Posting..." : "Post Comment"}
               </button>
             </div>
 
             {/* Comments List */}
             <div className="space-y-6">
-              {comments.map((comment) => (
+              {testimony.comments.map((comment:any) => (
                 <div
-                  key={comment.id}
-                  className="border-b border-border pb-6 last:border-b-0"
+                  key={comment._id}
+                  className="border-b relative border-border pb-6 last:border-b-0"
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="font-semibold text-foreground">
-                        {comment.author}
-                      </p>
+                      <span className="flex items-center gap-1 w-full">
+                        <img loading='lazy' className = 'w-12 h-12' src='/user.jpg'/>
+                        <p className="font-semibold text-foreground">
+                        {comment.name}
+                      </p></span>
                       <p className="text-sm text-muted-foreground">
-                        {comment.timestamp}
+                        {timeAgo(comment.createdAt)}
                       </p>
                     </div>
                     <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition">
-                      <Heart size={16} />
-                      {comment.likes}
+                      <Heart className="fill-pink-600 text-pink-600" size={16} />
+                      {comment.likes?.length || 0}
                     </button>
+                    
                   </div>
-                  <p className="text-foreground leading-relaxed">
-                    {comment.text}
+                  <p className="text-foreground mb-5 text-justify leading-relaxed">
+                    {comment.comment}
                   </p>
+                    <button onClick={()=>hundleLikeComment(comment._id)} className={`flex items-center absolute bottom-2 right-1 gap-1 text-sm text-muted-foreground hover:text-primary transition `}>
+                        <ThumbsUpIcon className={`cursor-pointer ${                      comment.likes?.includes(userId)
+                        ? "text-primary fill-primary"
+                        : "text-muted-foreground hover:text-primary"
+                    }`} size={20} />
+                       
+                    </button>
                 </div>
               ))}
             </div>

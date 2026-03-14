@@ -8,7 +8,8 @@ import Link from 'next/link'
 import { SkeletonGrid } from '@/components/skeleton-card'
 import { Heart, Play, Music, ArrowRight, X, Upload, Eye, Share2,Facebook, Twitter, Instagram, LucideYoutube, } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { testimonies } from '@/lib/mock-data'
+import { v4 as uuidv4 } from "uuid";
+
 
 type FilterType = 'all' | 'video' | 'audio' | 'article'
 
@@ -30,6 +31,7 @@ interface FilePreviewsState {
 }
 
 export default function TestimoniesPage() {
+  const [userId, setUserId] = useState<string>("");
   
   const [filter, setFilter] = useState<FilterType>('all')
   const [isLoading, setIsLoading] = useState(true)
@@ -55,14 +57,30 @@ export default function TestimoniesPage() {
     queryKey: ['testimony', 'all'],
   })
 
+  const createUserId = async () => {
+    try {
+      const savedId = localStorage.getItem("userId");
+      if (savedId) {
+        setUserId(savedId);
+      } else {
+        const newId = uuidv4();
+        localStorage.setItem("userId", newId);
+        setUserId(newId);
+      }
+    } catch (error) {
+      const savedId = localStorage.getItem("userId");
+      if (savedId) {
+        setUserId(savedId);
+      }
+    }
+  };
+
+
   useEffect(() => {
     if (testimonyData && testimonyData.length > 0) {
       setTestimonies(testimonyData)
-    } else {
-      // Fallback to mock data
-      setTestimonies(testimonies)
-    }
-
+    }  
+createUserId()
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [testimonyData])
