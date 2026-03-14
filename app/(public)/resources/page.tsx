@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { set } from "react-hook-form";
+import { apiRequest } from "@/lib/query-client";
+import { v4 as uuidv4 } from "uuid";
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
@@ -50,6 +52,7 @@ export default function ResourcesPage() {
   const { data: devotionalData } = useQuery<any[]>({
     queryKey: ["devotionals", "all"],
   });
+  const [userId, setUserId] = useState<string>("");
 
   const [sermonFilter, setSermonFilter] = useState<SermonFilterType>("all");
   const [sermonStates, setSermonStates] = useState<{
@@ -69,12 +72,29 @@ export default function ResourcesPage() {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [devotionals, setDevotionals] = useState<any[]>([]);
 
+  const createUserId = async () => {
+    try {
+      const savedId = localStorage.getItem("userId");
+      if (savedId) {
+        setUserId(savedId);
+      } else {
+        const newId = uuidv4();
+        localStorage.setItem("userId", newId);
+        setUserId(newId);
+      }
+    } catch (error) {
+      const savedId = localStorage.getItem("userId");
+      if (savedId) {
+        setUserId(savedId);
+      }
+    }
+  };
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (sermonData) {
       setSermons(sermonData);
-      
     }
     if (quotesData) {
       setQuotes(quotesData);
@@ -83,6 +103,8 @@ export default function ResourcesPage() {
       setDevotionals(devotionalData);
     }
 
+    createUserId();
+
     const timer = setTimeout(() => setIsLoading(false), 500);
     return () => clearTimeout(timer);
   }, [sermonData, quotesData, devotionalData]);
@@ -90,7 +112,7 @@ export default function ResourcesPage() {
   const filteredSermons = sermons?.filter((sermon) => {
     if (sermonFilter === "all") return true;
     if (sermonFilter === "video") return sermon.videoId || sermon.videoUrl.url;
-    if (sermonFilter === "audio") return sermon.audioUrl.url || []
+    if (sermonFilter === "audio") return sermon.audioUrl.url || [];
     return true;
   });
 
@@ -278,6 +300,46 @@ export default function ResourcesPage() {
     }
   };
 
+  const handleShare = async (sermonId: string) => {
+    try {
+      await apiRequest("POST", `/sermons/${sermonId}/shares`, { uuid: userId });
+      setSermons((prev) =>
+        prev.map((s) =>
+          s._id === sermonId ? { ...s, shares: [...s.shares, userId] } : s,
+        ),
+      );
+    } catch (error) {}
+  };
+
+  const handleLike = async (sermonId: string) => {
+    try {
+      await apiRequest("POST", `/sermons/${sermonId}/like`, { uuid: userId });
+      setSermons((prev) =>
+        prev.map((s) =>
+          s._id === sermonId ? { ...s, likes: [...s.likes, userId] } : s,
+        ),
+      );
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    }
+  };
+  const handleView = async (sermonId: string) => {
+    try {
+      await apiRequest("POST", `/sermons/${sermonId}/views`, { uuid: userId });
+      setSermons((prev) =>
+        prev.map((s) =>
+          s._id === sermonId ? { ...s, views: [...s.views, userId] } : s,
+        ),
+      );
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    }
+  };
+
   const sermonsContent = (
     <div className="space-y-6">
       <p className="text-muted-foreground mb-6">
@@ -316,7 +378,8 @@ export default function ResourcesPage() {
               : "bg-muted text-foreground hover:bg-muted/80"
           }`}
         >
-          <Music size={16} /> Audio ({sermons.filter((s) => s.audioUrl?.url).length})
+          <Music size={16} /> Audio (
+          {sermons.filter((s) => s.audioUrl?.url).length})
         </button>
       </div>
 
@@ -350,7 +413,7 @@ export default function ResourcesPage() {
                     />
                   </div>
                 )}
-                {sermon.videoUrl?.url  && (
+                {sermon.videoUrl?.url && (
                   <div className="bg-black aspect-video">
                     <div
                       style={{
@@ -422,8 +485,7 @@ export default function ResourcesPage() {
                   {/* Reactions (grouped) */}
                   <div className="mt-4 flex items-center justify-between">
                     <div className="inline-flex items-center gap-1 bg-muted/10 p-1 rounded-full">
-                      
-                       <button
+                      <button
                         // onClick={() => handleReaction(sermon._id, "heart")}
                         className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-primary/20 text-foreground transition"
                         aria-label="views"
@@ -434,12 +496,19 @@ export default function ResourcesPage() {
                           {sermon.views.length || 0}
                         </span>
                       </button>
-                       <button
-                        // onClick={() => handleReaction(sermon._id, "heart")}
-                        className="flex cursor-pointer items-center gap-2 px-3 py-2 rounded-full hover:bg-primary/20 text-foreground transition"
+                      <button
+                        onClick={() => handleLike(sermon._id)}
+                        className={`flex ${
+                          sermon.likes.includes(userId)
+                            ? "bg-primary text-white"
+                            : "hover:bg-primary/20 text-foreground"
+                        } cursor-pointer items-center gap-2 px-3 py-2 rounded-full hover:bg-primary/20 text-foreground transition`}
                         aria-label="Like"
                       >
-                        <Heart size={16} className="text-accent" />
+                        <Heart
+                          size={16}
+                          className={`${sermon.likes.includes(userId) ? "text-current fill-current" : "text-accent"}`}
+                        />
                         <span className="text-xs">
                           {sermon.likes.length || 0}
                         </span>
@@ -458,7 +527,7 @@ export default function ResourcesPage() {
                               .catch(() => {});
                           } else if (navigator.clipboard) {
                             navigator.clipboard.writeText(url).then(() => {
-                              alert("Sermon link copied to clipboard");
+                              handleShare(sermon._id);
                             });
                           } else {
                             prompt("Copy this link", url);
@@ -467,13 +536,15 @@ export default function ResourcesPage() {
                         className="flex cursor-pointer items-center gap-2 px-3 py-2 rounded-full hover:bg-primary/20 text-foreground transition"
                         aria-label="Share"
                       >
-                        <Share2 size={16} /><span className="text-xs">
+                        <Share2 size={16} />
+                        <span className="text-xs">
                           {sermon.shares.length || 0}
                         </span>
                       </button>
                     </div>
 
                     <Link
+                      onClick={()=>handleView(sermon._id)}
                       href={`/resources/${sermon._id}`}
                       className="flex items-center gap-2 px-3 py-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition"
                     >
@@ -482,10 +553,10 @@ export default function ResourcesPage() {
                     </Link>
                   </div>
 
-                   
                   {/* View Details Link */}
                   <div className="mt-4 text-right">
                     <Link
+                      onClick={()=>{handleView(sermon._id)}}
                       href={`/resources/${sermon._id}`}
                       className="inline-flex  items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition"
                     >
@@ -541,8 +612,7 @@ export default function ResourcesPage() {
                       />
                       <span>{quote.likes?.length}</span>
                     </button>
-                    
-                     
+
                     <button
                       onClick={() => handleShareQuote(quote)}
                       className="flex items-center cursor-pointer gap-2 px-3 py-2 rounded-full bg-muted hover:bg-muted/80 text-foreground text-sm transition ml-auto"
@@ -568,7 +638,10 @@ export default function ResourcesPage() {
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {devotionals.map((devotional) => {
-          const engagement = getDevotionalEngagement(devotional._id, devotional);
+          const engagement = getDevotionalEngagement(
+            devotional._id,
+            devotional,
+          );
           return (
             <div
               key={devotional._id}
@@ -576,7 +649,6 @@ export default function ResourcesPage() {
             >
               <div className="flex items-center justify-between gap-2 mb-4">
                 <div className="flex items-center gap-2">
-                 
                   <h3 className="text-lg font-bold text-foreground">
                     {devotional.title}
                   </h3>
@@ -584,10 +656,10 @@ export default function ResourcesPage() {
               </div>
               <span className="flex items-center gap-1 text-xs text-muted-foreground mb-4">
                 <Calendar className="text-primary" size={20} />
-              <p className="text-sm text-muted-foreground  ">
-                
-                {formatDate(devotional.createdAt)}
-              </p></span>
+                <p className="text-sm text-muted-foreground  ">
+                  {formatDate(devotional.createdAt)}
+                </p>
+              </span>
               <div className="mb-4">
                 <p className="text-xs font-semibold text-primary mb-2">
                   Scripture: {devotional.scripture}
@@ -596,14 +668,14 @@ export default function ResourcesPage() {
                   {devotional.reflection}
                 </p>
               </div>
-              {
-                devotional.prayer && <div className="bg-primary/5 rounded p-4 border border-primary/20 mb-4">
-                <p className="text-xs font-semibold text-primary mb-2">
-                  Prayer
-                </p>
-                 {devotional?.prayer}
-              </div>
-              }
+              {devotional.prayer && (
+                <div className="bg-primary/5 rounded p-4 border border-primary/20 mb-4">
+                  <p className="text-xs font-semibold text-primary mb-2">
+                    Prayer
+                  </p>
+                  {devotional?.prayer}
+                </div>
+              )}
 
               {/* Engagement Buttons */}
               <div className="flex gap-2 flex-wrap pt-4 border-t border-border">
@@ -621,8 +693,7 @@ export default function ResourcesPage() {
                   />
                   {devotional.likes?.length}
                 </button>
-                 
-                
+
                 <button
                   onClick={() => handleShareDevotional(devotional)}
                   className="flex items-center cursor-pointer  gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground text-xs transition ml-auto"

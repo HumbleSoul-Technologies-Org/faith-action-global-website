@@ -7,7 +7,7 @@ import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
 import Link from 'next/link'
 import { sermons } from '@/lib/mock-data'
-import { formatDate } from '@/lib/date-utils'
+import { formatDate, timeAgo } from '@/lib/date-utils'
 import { SkeletonDetailPage } from '@/components/skeleton-card'
 import { useQuery } from "@tanstack/react-query";
 
@@ -19,9 +19,15 @@ import {
   ArrowLeft,
   Send,
   Zap,
-  Eye
+  Eye,
+  Loader,
+  Clock,
+  ThumbsUpIcon
 } from 'lucide-react'
 import { Share2 } from 'lucide-react'
+import { set } from 'react-hook-form'
+import { v4 as uuidv4 } from 'uuid';
+import { apiRequest } from '@/lib/query-client'
 
 const ReactPlayer = dynamic(() => import('react-player'), { ssr: false })
 
@@ -42,20 +48,38 @@ export default function SermonDetailsPage({ params }: PageProps) {
    const { data: sermonData  } = useQuery<any>({
     queryKey: ["sermons", `${resolvedParams.id}`],
   })
-  const [sermonId, setSermonId] = useState<string>('')
+  const [userId, setUserId] = useState<string>('')
+  
   const [sermon, setSermon] = useState<any>(null)
+  const [saving, setSaving] = useState<any>(false)
+  const [processing, setProcessing] = useState<any>(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [state, setState] = useState<SermonState>({
-    reactions: { heart: 0, amen: 0, inspiring: 0 },
-    comments: [],
-    liked: false,
-  })
+   
   const [newComment, setNewComment] = useState('')
 const [commentName, setCommentName] = useState('')
   
+   const createUserId = async () => { 
+    try {
+       const savedId = localStorage.getItem('userId')
+      if (savedId) {
+        setUserId(savedId)
+      } else {
+        const newId = uuidv4();
+        localStorage.setItem('userId', newId);
+        setUserId(newId);
+      }
+      
+    } catch (error) {
+      const savedId = localStorage.getItem('userId')
+      if (savedId) {
+        setUserId(savedId)
+      }
+    }
+  }
   useEffect(() => {
  if (sermonData) {
-  setSermon(sermonData)
+   setSermon(sermonData)
+    createUserId()
  }
 
     const timer = setTimeout(() => setIsLoading(false), 500)
@@ -105,36 +129,109 @@ const [commentName, setCommentName] = useState('')
     }))
   }
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return
+ 
 
-    setState((prev) => ({
-      ...prev,
-      comments: [
-        ...prev.comments,
-        {
-          id: Date.now().toString(),
-          name: commentName || 'Anonymous',
-          message: newComment,
-          date: new Date().toLocaleDateString(),
-        },
-      ],
-    }))
-    setNewComment('')
-    setCommentName('')
+  const handleAddComment = async() => {
+    if (!newComment.trim()) return
+    try {
+      setSaving(true)
+      const commentData = {
+        name: commentName.trim() || 'Anonymous',
+        comment: newComment.trim(),
+        type:'sermon',
+        typeId: sermon._id,
+        uuid: userId,
+      };
+
+      await apiRequest('POST', '/comments/new', commentData)
+      
+  
+} catch (error) {
+  console.log('====================================');
+  console.log(error);
+  console.log('====================================');
+} finally {
+  setSaving(false)
+  
+}
+   
   }
 
-  const handleLike = () => {
-    setState((prev) => ({
-      ...prev,
-      liked: !prev.liked,
-      reactions: {
-        ...prev.reactions,
-        heart: prev.liked
-          ? (prev.reactions.heart || 0) - 1
-          : (prev.reactions.heart || 0) + 1,
-      },
-    }))
+  const handleLike = async() => {
+    try {
+  await apiRequest('POST', `/sermons/${sermon._id}/like`, { uuid: userId })
+  setSermon((prev: any) => ({
+    ...prev,
+    likes: prev.likes.includes(userId)
+      ? prev.likes.filter((id: string) => id !== userId)
+      : [...prev.likes, userId],
+  }))
+  
+} catch (error) {
+  console.log('====================================');
+  console.log(error);
+  console.log('====================================');
+}
+    // setState((prev) => ({
+    //   ...prev,
+    //   liked: !prev.liked,
+    //   reactions: {
+    //     ...prev.reactions,
+    //     heart: prev.liked
+    //       ? (prev.reactions.heart || 0) - 1
+    //       : (prev.reactions.heart || 0) + 1,
+    //   },
+    // }))
+  }
+  const handleShare = async() => {
+    try {
+  await apiRequest('POST', `/sermons/${sermon._id}/shares`, { uuid: userId })
+  setSermon((prev: any) => ({
+    ...prev,
+    shares: [...prev.shares, userId],
+  }))
+  
+} catch (error) {
+  console.log('====================================');
+  console.log(error);
+  console.log('====================================');
+}
+    // setState((prev) => ({
+    //   ...prev,
+    //   liked: !prev.liked,
+    //   reactions: {
+    //     ...prev.reactions,
+    //     heart: prev.liked
+    //       ? (prev.reactions.heart || 0) - 1
+    //       : (prev.reactions.heart || 0) + 1,
+    //   },
+    // }))
+  }
+  const likeComment = async(commentId: string) => {
+    try {
+       setProcessing(true)
+      await apiRequest('POST', `/comments/${commentId}/like`, { uuid: userId })
+      setSermon((prev: any) => ({
+        ...prev,
+        comments: prev.comments.map((comment: any) =>
+          comment._id === commentId
+            ? {
+              ...comment,
+              likes: comment.likes.includes(userId)
+                ? comment.likes.filter((id: string) => id !== userId)
+                : [...comment.likes, userId],
+            }
+            : comment
+        ),
+      }))
+      
+     } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+     } finally {
+       setProcessing(false)
+     }
   }
 
   return (
@@ -169,7 +266,7 @@ const [commentName, setCommentName] = useState('')
 
           {/* Media Player */}
           {(sermon.videoId || sermon.videoUrl?.url || sermon.audioUrl?.url) && (
-            <div className="bg-black rounded-lg overflow-hidden mb-8">
+            <div className="bg-linear-to-br from-primary/10 to-accent/10 rounded-lg overflow-hidden mb-8">
               {sermon.videoId && (
                 <div className="aspect-video">
                   <iframe
@@ -197,7 +294,7 @@ const [commentName, setCommentName] = useState('')
               )}
               {sermon.audioUrl?.url && !sermon.videoId && !sermon.videoUrl?.url && (
                 <div className="bg-linaer-to-br from-primary/10 to-accent/10 p-8 flex items-center justify-center min-h-48">
-                  <div className="text-center">
+                  <div className="text-center  ">
                     <Music className="text-primary mx-auto mb-4" size={48} />
                     <p className="text-lg font-semibold text-foreground mb-6">{sermon.title}</p>
                     <audio
@@ -222,24 +319,21 @@ const [commentName, setCommentName] = useState('')
             <div className="inline-flex items-center gap-1 bg-muted/10 p-2 rounded-full">
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition ${
-                  state.liked
-                    ? 'bg-accent text-white'
+                className={`flex items-center cursor-pointer gap-2 px-4 py-2 rounded-full transition ${
+                  sermon.likes.includes(userId)
+                    ? 'bg-primary text-white'
                     : 'hover:bg-primary/20 text-foreground'
                 }`}
               >
-                <Heart size={18} fill={state.liked ? 'currentColor' : 'none'} />
-                <span className="text-sm font-medium">{state.reactions.heart || 0}</span>
+                <Heart size={18} fill={sermon.likes.includes(userId) ? 'currentColor' : 'none'} />
+                <span className="text-sm font-medium">{sermon.likes.length || 0}</span>
               </button>
               <button
                 
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition ${
-                  state.liked
-                    ? 'bg-accent text-white'
-                    : 'hover:bg-primary/20 text-foreground'
-                }`}
+                className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-full transition bg-primary/20 text-foreground
+                  `}
               >
-                <Eye size={18} fill={state.liked ? 'currentColor' : 'none'} />
+                <Eye size={18}  />
                 <span className="text-sm font-medium">{sermon.views.length || 0}</span>
               </button>
                
@@ -253,13 +347,13 @@ const [commentName, setCommentName] = useState('')
                     navigator.share({ title: sermon.title, url }).catch(() => {})
                   } else if (navigator.clipboard) {
                     navigator.clipboard.writeText(url).then(() => {
-                      alert('Sermon link copied to clipboard')
+                      handleShare();
                     })
                   } else {
                     prompt('Copy this link', url)
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-primary/20 text-foreground transition"
+                className="flex cursor-pointer items-center gap-2 px-4 py-2 rounded-full hover:bg-primary/20 text-foreground transition"
               >
                 <Share2 size={18} />
                 <span className="text-sm font-medium">Shares: {sermon.shares.length}</span>
@@ -270,7 +364,7 @@ const [commentName, setCommentName] = useState('')
           
         </div>
         {/* Comments Section */}
-          <div className="bg-card sm:absolute top-80 left-10 sm:w-100 rounded-lg border border-border p-8">
+          <div className="bg-card sm:absolute top-10 left-10 sm:w-100 rounded-lg border border-border p-8">
             <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
               <MessageCircle size={24} />
               Comments ({sermon.comments.length})
@@ -280,7 +374,7 @@ const [commentName, setCommentName] = useState('')
             <div className="mb-8 p-6    border-b border-border">
               <input
                 type="text"
-                placeholder="Your name (optional)"
+                placeholder="Your name (leave blank for Anonymous)"
                 value={commentName}
                 onChange={(e) => setCommentName(e.target.value)}
                 className="w-full px-4 py-2 mb-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -296,8 +390,7 @@ const [commentName, setCommentName] = useState('')
                 onClick={handleAddComment}
                 className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-opacity-90 transition font-medium"
               >
-                <Send size={18} />
-                Post Comment
+                {saving ? <>Posting Comment ... <Loader className='w-4 h-4 animate-spin'/></> : <>Post Comment</>}
               </button>
             </div>
 
@@ -308,16 +401,20 @@ const [commentName, setCommentName] = useState('')
               </p>
             ) : (
               <div className="space-y-4">
-                {sermon.comments.map((comment) => (
+                {sermon.comments.map((comment:any,i:number) => (
                   <div
-                    key={comment._id}
-                    className="p-4 bg-background border border-border rounded-lg"
+                    key={i}
+                    className="p-4 bg-background pb-3 relative border border-border rounded-lg"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <p className="font-semibold text-foreground">{comment.name}</p>
-                      <p className="text-xs text-muted-foreground">{comment.date}</p>
+                      <span className='flex items-center justify-center gap-1'><img loading='lazy' src='/user.jpg' className='w-10 h-10 rounded-full' /> <p className="font-semibold text-foreground">{comment.name}</p></span>
+                     
+                      
                     </div>
-                    <p className="text-foreground leading-relaxed">{comment.message}</p>
+                    <p className="text-foreground mb-5 text-justify leading-relaxed">{comment.comment}</p>
+                     <p className="text-xs absolute -top-1 right-2  mt-5 text-muted-foreground"><Clock className="w-4 h-4 inline mr-2" />{timeAgo(comment.createdAt)}</p>
+                     {processing ? <Loader className='w-4 h-4 animate-spin absolute bottom-2 right-2' /> :<p className="text-xs items-center justify-center absolute bottom-1 right-2  mt-5 text-muted-foreground"><ThumbsUpIcon onClick={()=>likeComment(comment._id)} className={`w-5 h-5 cursor-pointer ${comment.likes.includes(userId) ? 'text-primary fill-primary' : ''} inline mb-1 mr-1`} />: {comment.likes?.length} Likes</p>}
+                    
                   </div>
                 ))}
               </div>

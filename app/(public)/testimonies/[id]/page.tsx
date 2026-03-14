@@ -355,13 +355,7 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
             <div className="flex gap-3 flex-wrap">
               {[
                 { type: "heart", icon: Heart, label: "Love", color: "#e74c3c" },
-                {
-                  type: "pray",
-                  icon: Hand,
-                  label: "Praying",
-                  color: "#3498db",
-                },
-                { type: "amen", icon: Zap, label: "Amen", color: "#2ecc71" },
+                 
               ].map((reaction) => {
                 const count =
                   reactions.find((r) => r.type === reaction.type)?.count || 0;

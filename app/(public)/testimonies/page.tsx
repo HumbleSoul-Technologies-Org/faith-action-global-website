@@ -6,9 +6,9 @@ import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
 import Link from 'next/link'
 import { SkeletonGrid } from '@/components/skeleton-card'
-import { Heart, Play, Music, ArrowRight, X, Upload, Eye, Share2 } from 'lucide-react'
+import { Heart, Play, Music, ArrowRight, X, Upload, Eye, Share2,Facebook, Twitter, Instagram, LucideYoutube, } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import test from 'node:test'
+import { testimonies } from '@/lib/mock-data'
 
 type FilterType = 'all' | 'video' | 'audio' | 'article'
 
@@ -56,10 +56,12 @@ export default function TestimoniesPage() {
   })
 
   useEffect(() => {
-if (testimonyData) {
-  setTestimonies(testimonyData)
-   
-}
+    if (testimonyData && testimonyData.length > 0) {
+      setTestimonies(testimonyData)
+    } else {
+      // Fallback to mock data
+      setTestimonies(testimonies)
+    }
 
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
@@ -112,10 +114,13 @@ if (testimonyData) {
   }
 
   const filteredTestimonies = testimonies.filter((testimony) => {
+    const hasVideo = testimony.videoUrl && (typeof testimony.videoUrl === 'object' ? testimony.videoUrl.url : testimony.videoUrl)
+    const hasVideoId = hasVideo || testimony.videoId  
+    const hasAudio = testimony.audioUrl && (typeof testimony.audioUrl === 'object' ? testimony.audioUrl.url : testimony.audioUrl)
+    
     if (filter === 'all') return true
-    if (filter === 'video') return testimony.videoUrl
-    if (filter === 'audio') return testimony.audioUrl
-    if (filter === 'article') return !testimony.videoUrl && !testimony.audioUrl
+    if (filter === 'video') return hasVideoId  
+    if (filter === 'audio') return hasAudio
     return true
   })
 
@@ -128,12 +133,19 @@ if (testimonyData) {
     {
       label: 'Videos',
       value: 'video',
-      count: testimonies.filter((t) => t.videoUrl?.url).length,
+      count: testimonies.filter((t) => {
+        const hasVideoId = t.videoId
+        const hasVideoUrl = t.videoUrl && (typeof t.videoUrl === 'object' ? t.videoUrl.url : t.videoUrl)
+        return hasVideoId || hasVideoUrl
+      }).length,
     },
     {
       label: 'Audio',
       value: 'audio',
-      count: testimonies.filter((t) => t.audioUrl?.url).length,
+      count: testimonies.filter((t) => {
+        const hasAudio = t.audioUrl && (typeof t.audioUrl === 'object' ? t.audioUrl.url : t.audioUrl)
+        return hasAudio
+      }).length,
     },
     
   ]
@@ -435,12 +447,12 @@ if (testimonyData) {
                       />
                       {/* Media Badges */}
                       <div className="absolute top-3 right-3 flex gap-2">
-                        {(testimony?.videoUrl?.url || testimony?.videoId) && (
+                        {((typeof testimony.videoUrl === 'object' ? testimony.videoUrl?.url : testimony.videoUrl) || testimony.videoId) && (
                           <div className="bg-accent text-white p-2 rounded-full">
                             <Play size={16} fill="white" />
                           </div>
                         )}
-                        {testimony.audioUrl?.url && (
+                        {(typeof testimony.audioUrl === 'object' ? testimony.audioUrl?.url : testimony.audioUrl) && (
                           <div className="bg-secondary text-foreground p-2 rounded-full">
                             <Music size={16} />
                           </div>
@@ -464,7 +476,7 @@ if (testimonyData) {
                       </p>
                     )}
                     <p className="text-sm text-foreground leading-relaxed mb-4 line-clamp-3">
-                      {testimony.content}
+                      {testimony.description}
                     </p>
                     <div className="flex items-center justify-between pt-4 border-t border-border">
                       <div className="flex gap-3 text-xs text-muted-foreground">
@@ -503,9 +515,26 @@ if (testimonyData) {
             <p className="text-lg text-muted-foreground mb-8">
               Do you have a testimony? We'd love to hear how God is working in your life. Share your story with our community.
             </p>
-            <button onClick={() => setShowForm(true)} className="px-8 py-3 bg-primary text-primary-foreground rounded-md hover:bg-opacity-90 transition-all font-medium">
+            {/* <button onClick={() => setShowForm(true)} className="px-8 py-3 bg-primary text-primary-foreground rounded-md hover:bg-opacity-90 transition-all font-medium">
               Submit Your Testimony
-            </button>
+            </button> */}
+             <div className="flex items-center justify-center gap-4">
+              {[
+                { icon: Facebook, href: '#', label: 'Facebook' },
+                { icon: Twitter, href: '#', label: 'Twitter' },
+                { icon: Instagram, href: '#', label: 'Instagram' },
+                { icon: LucideYoutube, href: '#', label: 'YouTube' },
+              ].map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  aria-label={social.label}
+                  className="w-10 h-10 cursor-pointer mnbv tbxsfdsdQ  ` rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-80 transition-opacity"
+                >
+                  <social.icon size={18} />
+                </a>
+              ))}
+            </div>
           </div>
         </section>
       </main>

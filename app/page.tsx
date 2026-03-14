@@ -1,11 +1,40 @@
+'use client'
+
 import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
 import Link from 'next/link'
-import { sermons, testimonies, quotes, events } from '@/lib/mock-data'
+import {   events } from '@/lib/mock-data'
 import { formatDate } from '@/lib/date-utils'
-import { ArrowRight, Book, Users, Heart, Calendar } from 'lucide-react'
+import { ArrowRight, Book, Users, Heart, Calendar, BookOpenText } from 'lucide-react'
+import { useQuery } from "@tanstack/react-query";
+import {useState,useEffect} from 'react'
+
 
 export default function Home() {
+
+  const { data: sermonsData, isLoading: sermonsLoading, error: sermonsError } = useQuery<any[]>({
+    queryKey: ['sermons','all'],
+  })
+  const { data: testimonyData, isLoading: testimonyLoading, error: testimonyError } = useQuery<any[]>({
+    queryKey: ['testimony','all'],
+  })
+  const { data: quotesData, isLoading: quotesLoading, error: quotesError } = useQuery<any[]>({
+    queryKey: ['quotes','all'],
+  })
+  const [sermons, setSermons] = useState<any[]>([]);
+  const [testimonies, setTestimonies] = useState<any[]>([]);
+  const [quotes, setQuotes] = useState<any[]>([]);
+  // const [events, setEvents] = useState([]);
+
+   
+  useEffect(() => {
+    document.title = "Gospel Ministry - Spreading God's Word and Empowering Lives";
+if(sermonsData) setSermons(sermonsData);
+if(testimonyData){ setTestimonies(testimonyData); console.log('====================================');
+console.log(testimonyData);
+console.log('====================================');}
+if(quotesData) setQuotes(quotesData);
+   }, [sermonsData, testimonyData, quotesData]);
   return (
     <>
       <Navigation />
@@ -63,7 +92,7 @@ export default function Home() {
                 { icon: Book, title: 'Sermons', desc: 'Inspiring teachings from Scripture' },
                 { icon: Heart, title: 'Testimonies', desc: 'Real stories of faith and transformation' },
                 { icon: Users, title: 'Community', desc: 'Connect with believers like you' },
-                { icon: Calendar, title: 'Events', desc: 'Join us for worship and service' },
+                { icon: BookOpenText, title: 'Quotes', desc: 'Inspirational messages from Scripture' },
               ].map((feature) => (
                 <div
                   key={feature.title}
@@ -81,7 +110,8 @@ export default function Home() {
         </section>
 
         {/* Latest Sermons */}
-        <section className="py-16 md:py-24 bg-card border-y border-border">
+        {  sermons.length > 0 && (
+           <section className="py-16 md:py-24 bg-card border-y border-border">
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex justify-between items-center mb-12">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary">Latest Sermons</h2>
@@ -96,7 +126,7 @@ export default function Home() {
                   <p className="text-sm text-muted-foreground mb-4">by {sermon.speaker}</p>
                   <p className="text-sm text-foreground mb-4">{sermon.description}</p>
                   <div className="flex justify-between items-center text-xs text-muted-foreground">
-                    <span>{sermon.passage}</span>
+                    <span>{sermon.scripture}</span>
                     <span>{sermon.duration}</span>
                   </div>
                   <div className="inline-flex w-full items-center justify-end gap-2 text-primary hover:gap-4 transition-all font-medium mt-4">
@@ -109,9 +139,10 @@ export default function Home() {
             </div>
           </div>
         </section>
+       )}
 
         {/* Daily Quote */}
-        <section className="py-16 md:py-24">
+        {  quotes.length > 0 && (<section className="py-16 md:py-24">
           <div className="max-w-4xl mx-auto px-4">
             <div className="bg-linear-to-r from-primary/10 to-accent/10 rounded-lg p-8 md:p-12 border border-border">
               <h2 className="text-2xl font-serif font-bold text-primary text-center mb-6">
@@ -119,15 +150,17 @@ export default function Home() {
               </h2>
               <blockquote className="text-center mb-6">
                 <p className="text-lg md:text-xl text-foreground mb-4 leading-relaxed">
-                  "{quotes[0].quote}"
+                  "{quotes[0]?.quote}"
                 </p>
-                <footer className="text-muted-foreground">— {quotes[0].scripture}</footer>
+                <footer className="text-muted-foreground">— {quotes[0]?.scripture}</footer>
               </blockquote>
             </div>
           </div>
-        </section>
+        </section>)
+        }
 
-        {/* Testimonies */}
+          {/* Testimonies */}
+        {  testimonies.length > 0 && (
         <section className="py-16 md:py-24 bg-card border-y border-border">
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex justify-between items-center mb-12">
@@ -137,59 +170,30 @@ export default function Home() {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {testimonies.slice(0, 3).map((testimony) => (
-                <Link href={`/testimonies/${testimony._id}`} key={testimony._id} className="bg-white rounded-lg border border-border p-6 hover:shadow-lg transition-shadow">
-                  {testimony.image && (
+              {testimonies.slice(0, 3).map((testimony,i) => (
+                <Link href={`/testimonies/${testimony._id}`} key={i} className="bg-white rounded-lg border border-border  hover:shadow-lg transition-shadow">
+                  {testimony.image.url && (
                     <img
                       src={testimony.image.url}
                       alt={testimony.name}
                       className="w-full h-48 object-cover rounded-lg mb-4"
                     />
                   )}
-                  <h3 className="text-lg font-bold text-foreground mb-2">{testimony.title}</h3>
+                  <span className="p-6 block">
+                    <h3 className="text-lg font-bold text-foreground mb-2">{testimony.title}</h3>
                   <p className="text-sm text-muted-foreground mb-4">{testimony.name}</p>
-                  <p className="text-sm text-foreground leading-relaxed line-clamp-3">{testimony.content}</p>
+                    <p className="text-sm text-foreground leading-relaxed line-clamp-3">{testimony.description}</p></span>
+                  <Link href={`/testimonies/${testimony._id}`} className="inline-flex text-right p-2  items-center gap-2 text-primary hover:gap-4 transition-all font-medium mt-4">
+                    See Details<ArrowRight size={16} />
+                  </Link>
                 </Link >
               ))}
             </div>
           </div>
         </section>
+        )}
 
-        {/* Upcoming Events */}
-        <section className="py-16 md:py-24">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="flex justify-between items-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary">Upcoming Events</h2>
-              <Link href="/empowerment" className="text-primary hover:underline font-medium">
-                View More
-              </Link>
-            </div>
-            <div className="space-y-4">
-              {events.slice(0, 3).map((event) => (
-                <div
-                  key={event.id}
-                  className="bg-card rounded-lg border border-border p-6 flex flex-col md:flex-row gap-6 hover:shadow-lg transition-shadow"
-                >
-                  {event.image && (
-                    <img
-                      src={event.image.url}
-                      alt={event.title}
-                      className="w-full md:w-48 h-48 object-cover rounded-lg"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-foreground mb-2">{event.title}</h3>
-                    <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                      <p>{formatDate(event.date)} at {event.time}</p>
-                      <p>{event.location}</p>
-                    </div>
-                    <p className="text-foreground text-sm leading-relaxed">{event.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+         
 
         {/* CTA Section */}
         <section className="py-16 md:py-24 bg-linear-to-r from-primary to-accent text-primary-foreground">
