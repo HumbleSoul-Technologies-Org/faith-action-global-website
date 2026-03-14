@@ -52,7 +52,10 @@ export default function ContactPage() {
    }
   }
 
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' })}, [])
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    document.title = "Contact Us - Gospel Plug UG"
+  }, [])
 
   return (
     <>

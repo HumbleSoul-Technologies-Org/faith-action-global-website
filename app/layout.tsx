@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/sonner'
 import QueryProvider from '@/components/query-provider'
 import { AuthProvider } from '@/lib/auth-context'
 import { Analytics } from '@vercel/analytics/react'
+import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });

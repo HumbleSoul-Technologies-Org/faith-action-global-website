@@ -80,7 +80,9 @@ export default function TestimoniesPage() {
     if (testimonyData && testimonyData.length > 0) {
       setTestimonies(testimonyData)
     }  
-createUserId()
+    createUserId()
+    
+    document.title = "Testimonies - Gospel Plug UG";
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [testimonyData])
@@ -185,7 +187,7 @@ createUserId()
         </section>
 
         {/* Filter Section */}
-        <section className="py-8 md:py-12">
+        {testimonies.length > 0 && (<section className="py-8 md:py-12">
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
               <div className="flex flex-wrap gap-3 items-center">
@@ -211,7 +213,7 @@ createUserId()
                
             </div>
           </div>
-        </section>
+        </section>)}
 
         {/* Testimony Form Modal */}
         {showForm && (

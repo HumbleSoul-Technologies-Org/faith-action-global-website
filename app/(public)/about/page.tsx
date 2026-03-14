@@ -7,7 +7,10 @@ import { useEffect } from 'react'
 
 
 export default function AboutPage() {
-  useEffect(() => {window.scrollTo({ top: 0, behavior: 'smooth' })}, [])
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    document.title = "About Us - Gospel Plug UG"
+  }, [])
   return (
     <>
       <Navigation />

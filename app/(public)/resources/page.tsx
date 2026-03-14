@@ -88,7 +88,7 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-
+document.title = "Resources - Gospel Plug UG";
     if (sermonData) {
       setSermons(sermonData);
     }
@@ -288,7 +288,7 @@ export default function ResourcesPage() {
       </p>
 
       {/* Sermon Filters */}
-      <div className="flex flex-wrap gap-2 items-center mb-8">
+      {sermons.length > 0 && (<div className="flex flex-wrap gap-2 items-center mb-8">
         <button
           onClick={() => setSermonFilter("all")}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
@@ -321,7 +321,7 @@ export default function ResourcesPage() {
           <Music size={16} /> Audio (
           {sermons.filter((s) => s.audioUrl?.url).length})
         </button>
-      </div>
+      </div>)}
 
       {isLoading ? (
         <SkeletonList count={2} />
