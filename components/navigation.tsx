@@ -25,8 +25,8 @@ export default function Navigation() {
       <div className="max-w-6xl mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <Link href="/" className="text-2xl font-serif font-bold text-primary">
-            The Gospel Plug.UG
+          <Link href="/" className="text-lg sm:text-2xl flex items-center  font-serif font-bold text-primary">
+            <img src="/logo.png" alt="Faith Action Global" className="w-15 h-10 sm:h-20 sm:w-30 sm:-mr-5" />Faith Action Global
           </Link>
 
           {/* Desktop Navigation */}

@@ -30,9 +30,7 @@ export default function Home() {
   useEffect(() => {
     document.title = "Gospel Ministry - Spreading God's Word and Empowering Lives";
 if(sermonsData) setSermons(sermonsData);
-if(testimonyData){ setTestimonies(testimonyData); console.log('====================================');
-console.log(testimonyData);
-console.log('====================================');}
+    if (testimonyData) { setTestimonies(testimonyData) }
 if(quotesData) setQuotes(quotesData);
    }, [sermonsData, testimonyData, quotesData]);
   return (

@@ -82,7 +82,7 @@ export default function TestimoniesPage() {
     }  
     createUserId()
     
-    document.title = "Testimonies - Gospel Plug UG";
+    document.title = "Testimonies-Faith Action Global";
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [testimonyData])

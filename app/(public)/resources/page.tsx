@@ -88,7 +88,7 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-document.title = "Resources - Gospel Plug UG";
+document.title = "Resources - Faith Action Global";
     if (sermonData) {
       setSermons(sermonData);
     }

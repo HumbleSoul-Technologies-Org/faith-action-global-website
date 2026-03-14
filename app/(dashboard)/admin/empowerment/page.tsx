@@ -736,7 +736,7 @@ export default function EmpowermentManager() {
                       </button>
                       <button
                         onClick={() => {
-                          deleteEvent(event.id)
+                          // deleteEvent(event.id)
                           setOpenEventMenu(null)
                         }}
                         className="w-full px-4 py-2 text-left hover:bg-destructive/10 transition-colors text-sm text-destructive"

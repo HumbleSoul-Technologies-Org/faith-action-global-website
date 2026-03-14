@@ -175,7 +175,7 @@ export default function ContactPage() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
-    document.title = "Contact Us - Gospel Plug UG"
+    document.title = "Contact Us - Faith Action Global"
   }, [])
 
   return (

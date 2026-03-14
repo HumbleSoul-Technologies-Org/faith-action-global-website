@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react'
+import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, YoutubeIcon } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* About Section */}
           <div>
-            <h3 className="text-lg font-serif font-bold text-primary mb-4">Gospel Ministry</h3>
+            <h3 className="text-lg flex items-center font-serif font-bold text-primary mb-4"><img src="/logo.png" alt="Faith Action Global" className="w-15 h-10 -mr-2" />Faith Action Global</h3>
             <p className="text-muted-foreground text-sm">
               Spreading God's word and empowering communities through faith and service.
             </p>
@@ -23,6 +23,8 @@ export default function Footer() {
                 { href: '/resources', label: 'Resources' },
                 { href: '/testimonies', label: 'Testimonies' },
                 { href: '/about', label: 'About Us' },
+                { href: '/privacy-policy', label: 'Privacy Policy' },
+                { href: '/terms-of-service', label: 'Terms of Service' },
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-muted-foreground hover:text-primary transition-colors text-sm">
@@ -60,6 +62,7 @@ export default function Footer() {
                 { icon: Facebook, href: '#', label: 'Facebook' },
                 { icon: Twitter, href: '#', label: 'Twitter' },
                 { icon: Instagram, href: '#', label: 'Instagram' },
+                { icon: YoutubeIcon, href: '#', label: 'YouTube' },
               ].map((social) => (
                 <a
                   key={social.label}
@@ -78,10 +81,10 @@ export default function Footer() {
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
           <p>&copy; 2024 Gospel Ministry. All rights reserved.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
-            <Link href="#" className="hover:text-primary transition-colors">
+            <Link href="/privacy-policy" className="hover:text-primary transition-colors">
               Privacy Policy
             </Link>
-            <Link href="#" className="hover:text-primary transition-colors">
+            <Link href="/terms-of-service" className="hover:text-primary transition-colors">
               Terms of Service
             </Link>
           </div>
