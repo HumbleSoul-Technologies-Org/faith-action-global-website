@@ -6,6 +6,7 @@ import Footer from '@/components/footer'
 import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react'
 import { set } from 'react-hook-form'
 import { apiRequest } from '@/lib/query-client'
+import { toast } from 'sonner'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -28,11 +29,16 @@ export default function ContactPage() {
     setSubmitting(true)
     try {
      await apiRequest('POST','/messages/contact', formData)
-    
+     toast.success("Message sent!", {
+       description: "Thank you for contacting us. We'll get back to you soon.",
+     });
    } catch (error) {
     console.log('====================================');
     console.log(error);
     console.log('====================================');
+    toast.error("Failed to send message", {
+      description: "Please try again later.",
+    });
    } finally {
     setSubmitting(false)
     setSubmitted(true)

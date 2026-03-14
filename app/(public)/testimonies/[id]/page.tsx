@@ -10,6 +10,7 @@ import { formatDate, timeAgo } from "@/lib/date-utils";
 import { SkeletonDetailPage } from "@/components/skeleton-card";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
+import { toast } from "sonner";
 
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
@@ -143,6 +144,9 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
         likes: updatedLikes,
       };
     });
+    toast.success("Liked!", {
+      description: "Your like has been recorded.",
+    });
   };
 
   const handleAddComment = async() => {
@@ -162,8 +166,14 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
        
       setCommentText("");
       setCommentName("");
+      toast.success("Comment posted!", {
+        description: "Your comment has been added successfully.",
+      });
     } catch (error) {
       console.error("Error adding comment:", error);
+      toast.error("Failed to post comment", {
+        description: "Please try again later.",
+      });
     } finally {
       setSaving(false);
     }
@@ -177,7 +187,9 @@ export default function TestimonyDetailsPage({ params }: PageProps) {
 
     if (shareUrl && navigator.clipboard) {
       navigator.clipboard.writeText(shareUrl);
-       
+      toast.success("Link copied!", {
+        description: "Testimony link copied to clipboard.",
+      });
     }
 
     try {

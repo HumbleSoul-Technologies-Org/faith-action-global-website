@@ -12,6 +12,7 @@ import { uploadToCloudinary } from '@/lib/api'
 import { apiRequest } from '@/lib/query-client'
 import { useQuery } from '@tanstack/react-query'
 import { log } from 'node:console'
+import { toast } from 'sonner'
 
 const ReactPlayer = dynamic(() => import('react-player'), { ssr: false })
 
@@ -179,6 +180,9 @@ export default function ResourcesPage() {
       setVideoProgress(0)
       setAudioProgress(0)
       setIsUploading(false)
+    toast.success("Sermon created!", {
+      description: "The sermon has been added successfully.",
+    });
   }
   async function updateSermon(id: string, updated: Sermon) {
     await apiRequest('PUT', `/sermons/update/${id}`, updated)
@@ -189,13 +193,22 @@ export default function ResourcesPage() {
       setVideoProgress(0)
       setAudioProgress(0)
       setIsUploading(false)
+    toast.success("Sermon updated!", {
+      description: "The sermon has been updated successfully.",
+    });
   }
   async function deleteSermon(id: string) {
    try {     setDeleting(id)
      await apiRequest('DELETE', `/sermons/delete/${id}`)
     setSermons((prev) => prev.filter((p) => p._id !== id))
+    toast.success("Sermon deleted!", {
+      description: "The sermon has been removed successfully.",
+    });
    } catch (error) {
     console.error('Error deleting sermon:', error)
+    toast.error("Failed to delete sermon", {
+      description: "Please try again later.",
+    });
    } finally {
      setDeleting('')
    }
@@ -206,10 +219,16 @@ export default function ResourcesPage() {
     try {
       setSaving(true)
       await apiRequest('POST', '/quotes/create', q); setQuotes((p) => [q, ...p]);
+      toast.success("Quote created!", {
+        description: "The quote has been added successfully.",
+      });
     } catch (error) {
       console.log('====================================');
       console.log(error);
       console.log('====================================');
+      toast.error("Failed to create quote", {
+        description: "Please try again later.",
+      });
     } finally { 
       setSaving(false)
     }
@@ -217,23 +236,53 @@ export default function ResourcesPage() {
   async function updateQuote(id: string, q: Quote) {
     try {
        setSaving(true); await apiRequest('PUT', `/quotes/update/${id}`, q); setQuotes((p) => p.map((x) => x._id === id ? q : x));  
+       toast.success("Quote updated!", {
+         description: "The quote has been updated successfully.",
+       });
     } catch (error) {
       console.log('====================================');
       console.log(error);
       console.log('====================================');
+      toast.error("Failed to update quote", {
+        description: "Please try again later.",
+      });
     }finally{setSaving(false)}
   }
-  async function deleteQuote(id: string) { setSaving(true); await apiRequest('DELETE', `/quotes/delete/${id}`); setQuotes((p) => p.filter((x) => x._id !== id)); setSaving(false) }
+  async function deleteQuote(id: string) { 
+    try {
+      setSaving(true); 
+      await apiRequest('DELETE', `/quotes/delete/${id}`); 
+      setQuotes((p) => p.filter((x) => x._id !== id)); 
+      toast.success("Quote deleted!", {
+        description: "The quote has been removed successfully.",
+      });
+    } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+      toast.error("Failed to delete quote", {
+        description: "Please try again later.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function addDevotional(d: Devotional) { 
     try {
       setSaving(true);
       await apiRequest('POST', '/devotionals/create', d);
       setDevotionals((p) => [d, ...p]); 
+      toast.success("Devotional created!", {
+        description: "The devotional has been added successfully.",
+      });
     } catch (error) {
       console.log('====================================');
       console.log(error);
       console.log('====================================');
+      toast.error("Failed to create devotional", {
+        description: "Please try again later.",
+      });
     }finally{setSaving(false)}
    }
   async function updateDevotional(id: string, d: Devotional) { 
@@ -241,10 +290,16 @@ export default function ResourcesPage() {
       setSaving(true);
       await apiRequest('PUT', `/devotionals/update/${id}`, d);
       setDevotionals((p) => p.map((x) => x._id === id ? d : x));   
+      toast.success("Devotional updated!", {
+        description: "The devotional has been updated successfully.",
+      });
     } catch (error) {
       console.log('====================================');
       console.log(error);
       console.log('====================================');
+      toast.error("Failed to update devotional", {
+        description: "Please try again later.",
+      });
     }finally{setSaving(false)}
   }
   async function deleteDevotional(id: string) { 
@@ -252,10 +307,16 @@ export default function ResourcesPage() {
       setSaving(true);
       await apiRequest('DELETE', `/devotionals/delete/${id}`);
       setDevotionals((p) => p.filter((x) => x._id !== id));
+      toast.success("Devotional deleted!", {
+        description: "The devotional has been removed successfully.",
+      });
     } catch (error) {
       console.log('====================================');
       console.log(error);
       console.log('====================================');
+      toast.error("Failed to delete devotional", {
+        description: "Please try again later.",
+      });
     }finally{setSaving(false)}
    }
 
@@ -500,7 +561,10 @@ export default function ResourcesPage() {
                     </div>
                   )}
                 </div>
-              </div>{isUploading && selectedVideo && videoProgress > 0 && (
+              </div>
+              
+              {/* Video Upload Progress Bar  */}
+              {isUploading && selectedVideo && videoProgress > 0 && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <p className="text-xs font-medium text-gray-600">Video Upload Progress</p>
@@ -514,6 +578,8 @@ export default function ResourcesPage() {
                   </div>
                 </div>
               )}
+
+              {/* Audio Upload Progress Bar  */}
               {isUploading && selectedAudio && audioProgress > 0 && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
@@ -543,6 +609,10 @@ export default function ResourcesPage() {
                   Cancel
                 </button>
               </div>
+
+              
+
+              
               
               {uploadError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg">

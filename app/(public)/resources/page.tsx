@@ -21,10 +21,9 @@ import {
   Share2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { set } from "react-hook-form";
 import { apiRequest } from "@/lib/query-client";
 import { v4 as uuidv4 } from "uuid";
-import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
@@ -59,15 +58,11 @@ export default function ResourcesPage() {
   const [sermonStates, setSermonStates] = useState<{
     [key: string]: SermonState;
   }>({});
-  const [commentInputs, setCommentInputs] = useState<{ [key: string]: string }>(
-    {},
-  );
+   
   const [quoteEngagement, setQuoteEngagement] = useState<{
     [key: string]: EngagementState;
   }>({});
-  const [devotionalEngagement, setDevotionalEngagement] = useState<{
-    [key: string]: EngagementState;
-  }>({});
+  
   const [isLoading, setIsLoading] = useState(true);
   const [sermons, setSermons] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -184,14 +179,17 @@ export default function ResourcesPage() {
     const text = `"${quote.quote}"\n\n- ${quote.scripture}`;
     if (navigator.share) {
       navigator.share({ title: "Gospel Quote", text });
+      toast.success("Shared!", {
+        description: "Quote shared successfully.",
+      });
     } else {
       navigator.clipboard.writeText(text);
-       apiRequest("POST", `/quotes/${quote._id}/shares`, { uuid: userId })
+      apiRequest("POST", `/quotes/${quote._id}/shares`, { uuid: userId });
+      toast.success("Copied to clipboard!", {
+        description: "Quote link copied to clipboard.",
+      });
     }
   };
-
-  
-   
 
   const handleDevotionalLike = (devotionalId: string) => {
     apiRequest("POST", `/devotionals/${devotionalId}/likes`, { uuid: userId });
@@ -208,6 +206,9 @@ export default function ResourcesPage() {
     const text = `${devotional.title}\n\nScripture: ${devotional.scripture}\n\n${devotional.reflection}`;
     if (navigator.share) {
       navigator.share({ title: devotional.title, text });
+      toast.success("Shared!", {
+        description: "Devotional shared successfully.",
+      });
     } else {
       navigator.clipboard.writeText(text);
       apiRequest("POST", `/devotionals/${devotional._id}/shares`, { uuid: userId })
@@ -218,7 +219,9 @@ export default function ResourcesPage() {
             : d
         )
       );
-
+      toast.success("Copied to clipboard!", {
+        description: "Devotional copied to clipboard.",
+      });
     }
   };
 
@@ -230,7 +233,14 @@ export default function ResourcesPage() {
           s._id === sermonId ? { ...s, shares: [...s.shares, userId] } : s,
         ),
       );
-    } catch (error) {}
+      toast.success("Shared!", {
+        description: "Your share has been recorded.",
+      });
+    } catch (error) {
+      toast.error("Failed to share", {
+        description: "Please try again later.",
+      });
+    }
   };
 
   const handleLike = async (sermonId: string, type: string) => {
@@ -243,10 +253,16 @@ export default function ResourcesPage() {
         ),
       );
       }
+      toast.success("Liked!", {
+        description: "Your like has been recorded.",
+      });
     } catch (error) {
       console.log("====================================");
       console.log(error);
       console.log("====================================");
+      toast.error("Failed to like", {
+        description: "Please try again later.",
+      });
     }
   };
   const handleView = async (sermonId: string) => {
