@@ -24,6 +24,7 @@ import { useQuery } from "@tanstack/react-query";
 import { set } from "react-hook-form";
 import { apiRequest } from "@/lib/query-client";
 import { v4 as uuidv4 } from "uuid";
+import { api } from "@/lib/api";
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
@@ -213,6 +214,7 @@ export default function ResourcesPage() {
   };
 
   const handleQuoteLike = (quoteId: string) => {
+   
     setQuoteEngagement((prev) => ({
       ...prev,
       [quoteId]: {
@@ -222,16 +224,16 @@ export default function ResourcesPage() {
           ? prev[quoteId].likes - 1
           : prev[quoteId].likes + 1,
       },
-    }));
+    })); apiRequest("POST", `/quotes/${quoteId}/likes`, { uuid: userId });
   };
 
   const handleShareQuote = (quote: any) => {
-    const text = `"${quote.text}"\n\n- ${quote.passage}`;
+    const text = `"${quote.quote}"\n\n- ${quote.scripture}`;
     if (navigator.share) {
       navigator.share({ title: "Gospel Quote", text });
     } else {
       navigator.clipboard.writeText(text);
-      alert("Quote copied to clipboard!");
+       apiRequest("POST", `/quotes/${quote._id}/shares`, { uuid: userId })
     }
   };
 
@@ -278,16 +280,14 @@ export default function ResourcesPage() {
   };
 
   const handleDevotionalLike = (devotionalId: string) => {
-    setDevotionalEngagement((prev) => ({
-      ...prev,
-      [devotionalId]: {
-        ...prev[devotionalId],
-        liked: !prev[devotionalId].liked,
-        likes: prev[devotionalId].liked
-          ? prev[devotionalId].likes - 1
-          : prev[devotionalId].likes + 1,
-      },
-    }));
+    apiRequest("POST", `/devotionals/${devotionalId}/likes`, { uuid: userId });
+    setDevotionals((prev) => 
+      prev.map((d) =>
+        d._id === devotionalId
+          ? { ...d, liked: !d.liked, likes: d.liked ? d.likes - 1 : d.likes + 1 }
+          : d
+      )
+    );
   };
 
   const handleShareDevotional = (devotional: any) => {
@@ -296,13 +296,21 @@ export default function ResourcesPage() {
       navigator.share({ title: devotional.title, text });
     } else {
       navigator.clipboard.writeText(text);
-      alert("Devotional copied to clipboard!");
+      apiRequest("POST", `/devotionals/${devotional._id}/shares`, { uuid: userId })
+      setDevotionals((prev) =>
+        prev.map((d) =>
+          d._id === devotional._id
+            ? { ...d, shares: [...(d.shares || []), userId] }
+            : d
+        )
+      );
+
     }
   };
 
-  const handleShare = async (sermonId: string) => {
+  const handleShare = async (sermonId: string, type: string) => {
     try {
-      await apiRequest("POST", `/sermons/${sermonId}/shares`, { uuid: userId });
+      await apiRequest("POST", `/${type}/${sermonId}/shares`, { uuid: userId });
       setSermons((prev) =>
         prev.map((s) =>
           s._id === sermonId ? { ...s, shares: [...s.shares, userId] } : s,
@@ -311,14 +319,16 @@ export default function ResourcesPage() {
     } catch (error) {}
   };
 
-  const handleLike = async (sermonId: string) => {
+  const handleLike = async (sermonId: string, type: string) => {
     try {
-      await apiRequest("POST", `/sermons/${sermonId}/like`, { uuid: userId });
-      setSermons((prev) =>
+      await apiRequest("POST", `/${type}/${sermonId}/like`, { uuid: userId });
+      if (type === 'sermon') { 
+         setSermons((prev) =>
         prev.map((s) =>
           s._id === sermonId ? { ...s, likes: [...s.likes, userId] } : s,
         ),
       );
+      }
     } catch (error) {
       console.log("====================================");
       console.log(error);
@@ -497,7 +507,7 @@ export default function ResourcesPage() {
                         </span>
                       </button>
                       <button
-                        onClick={() => handleLike(sermon._id)}
+                        onClick={() => handleLike(sermon._id,'sermons')}
                         className={`flex ${
                           sermon.likes.includes(userId)
                             ? "bg-primary text-white"
@@ -527,7 +537,7 @@ export default function ResourcesPage() {
                               .catch(() => {});
                           } else if (navigator.clipboard) {
                             navigator.clipboard.writeText(url).then(() => {
-                              handleShare(sermon._id);
+                              handleShare(sermon._id, 'sermons');
                             });
                           } else {
                             prompt("Copy this link", url);
@@ -601,14 +611,14 @@ export default function ResourcesPage() {
                     <button
                       onClick={() => handleQuoteLike(quote._id)}
                       className={`flex items-center cursor-pointer gap-2 px-3 py-2 rounded-full text-sm transition ${
-                        engagement.liked
+                        quote.likes.includes(userId)
                           ? "bg-accent text-white"
                           : "bg-muted hover:bg-muted/80 text-foreground"
                       }`}
                     >
                       <Heart
                         size={14}
-                        fill={engagement.liked ? "currentColor" : "none"}
+                        fill={quote.likes.includes(userId) ? "currentColor" : "none"}
                       />
                       <span>{quote.likes?.length}</span>
                     </button>
@@ -638,10 +648,7 @@ export default function ResourcesPage() {
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {devotionals.map((devotional) => {
-          const engagement = getDevotionalEngagement(
-            devotional._id,
-            devotional,
-          );
+           
           return (
             <div
               key={devotional._id}
@@ -681,14 +688,14 @@ export default function ResourcesPage() {
               <div className="flex gap-2 flex-wrap pt-4 border-t border-border">
                 <button
                   onClick={() => handleDevotionalLike(devotional._id)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition ${
-                    engagement.liked
+                  className={`flex items-center cursor-pointer gap-1 px-2 py-1 rounded text-xs transition ${
+                    devotional.likes.includes(userId)
                       ? "bg-accent text-white"
                       : "bg-muted hover:bg-muted/80 text-foreground"
                   }`}
                 >
                   <Heart
-                    size={12}
+                    size={14}
                     fill={devotional.liked?.length ? "currentColor" : "none"}
                   />
                   {devotional.likes?.length}
@@ -698,7 +705,7 @@ export default function ResourcesPage() {
                   onClick={() => handleShareDevotional(devotional)}
                   className="flex items-center cursor-pointer  gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground text-xs transition ml-auto"
                 >
-                  <Share2 size={12} /> Share
+                  <Share2 size={12} /> Shares : {devotional.shares?.length}
                 </button>
               </div>
             </div>
