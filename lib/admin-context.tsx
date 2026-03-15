@@ -17,24 +17,10 @@ import {
 } from './mock-data'
 
 interface AdminContextType {
-  sermons: Sermon[]
-  quotes: Quote[]
-  devotionals: Devotional[]
-  testimonies: Testimony[]
+  
   articles: Article[]
   events: Event[]
-  addSermon: (sermon: Sermon) => void
-  updateSermon: (id: string, sermon: Partial<Sermon>) => void
-  deleteSermon: (id: string) => void
-  addQuote: (quote: Quote) => void
-  updateQuote: (id: string, quote: Partial<Quote>) => void
-  deleteQuote: (id: string) => void
-  addDevotional: (devotional: Devotional) => void
-  updateDevotional: (id: string, devotional: Partial<Devotional>) => void
-  deleteDevotional: (id: string) => void
-  addTestimony: (testimony: Testimony) => void
-  updateTestimony: (id: string, testimony: Partial<Testimony>) => void
-  deleteTestimony: (id: string) => void
+   
   addArticle: (article: Article) => void
   updateArticle: (id: string, article: Partial<Article>) => void
   deleteArticle: (id: string) => void
@@ -53,25 +39,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [articles, setArticles] = useState<Article[]>(initialArticles)
   const [events, setEvents] = useState<Event[]>(initialEvents)
 
-  const addSermon = (sermon: Sermon) => setSermons([...sermons, sermon])
-  const updateSermon = (id: string, updates: Partial<Sermon>) =>
-    setSermons(sermons.map((s) => (s.id === id ? { ...s, ...updates } : s)))
-  const deleteSermon = (id: string) => setSermons(sermons.filter((s) => s.id !== id))
-
-  const addQuote = (quote: Quote) => setQuotes([...quotes, quote])
-  const updateQuote = (id: string, updates: Partial<Quote>) =>
-    setQuotes(quotes.map((q) => (q.id === id ? { ...q, ...updates } : q)))
-  const deleteQuote = (id: string) => setQuotes(quotes.filter((q) => q.id !== id))
-
-  const addDevotional = (devotional: Devotional) => setDevotionals([...devotionals, devotional])
-  const updateDevotional = (id: string, updates: Partial<Devotional>) =>
-    setDevotionals(devotionals.map((d) => (d.id === id ? { ...d, ...updates } : d)))
-  const deleteDevotional = (id: string) => setDevotionals(devotionals.filter((d) => d.id !== id))
-
-  const addTestimony = (testimony: Testimony) => setTestimonies([...testimonies, testimony])
-  const updateTestimony = (id: string, updates: Partial<Testimony>) =>
-    setTestimonies(testimonies.map((t) => (t.id === id ? { ...t, ...updates } : t)))
-  const deleteTestimony = (id: string) => setTestimonies(testimonies.filter((t) => t.id !== id))
+  
 
   const addArticle = (article: Article) => setArticles([...articles, article])
   const updateArticle = (id: string, updates: Partial<Article>) =>
@@ -86,24 +54,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   return (
     <AdminContext.Provider
       value={{
-        sermons,
-        quotes,
-        devotionals,
-        testimonies,
+        
+       
+         
         articles,
         events,
-        addSermon,
-        updateSermon,
-        deleteSermon,
-        addQuote,
-        updateQuote,
-        deleteQuote,
-        addDevotional,
-        updateDevotional,
-        deleteDevotional,
-        addTestimony,
-        updateTestimony,
-        deleteTestimony,
         addArticle,
         updateArticle,
         deleteArticle,
