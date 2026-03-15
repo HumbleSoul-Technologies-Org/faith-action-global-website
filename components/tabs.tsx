@@ -30,7 +30,7 @@ export default function Tabs({ tabs, defaultTab }: TabsProps) {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            {tab.label} ({(tab as any).count !== undefined ? (tab as any).count : ''})
+            {tab.label} ({(tab as any).count !== undefined ? (tab as any).count : 0})
           </button>
         ))}
       </div>
