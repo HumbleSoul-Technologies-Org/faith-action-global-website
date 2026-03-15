@@ -1,11 +1,48 @@
 'use client'
 
-import { useAdmin } from '@/lib/admin-context'
 import { BookOpen, Heart, Users, Calendar, TrendingUp, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { useState,useEffect, use } from 'react'
 
 export default function AdminDashboard() {
-  const { sermons, quotes, testimonies, articles, events, devotionals } = useAdmin()
+
+  const [sermons, setSermons] = useState<any[]>([])
+  const [quotes, setQuotes] = useState<any[]>([])
+  const [devotionals, setDevotionals] = useState<any[]>([])
+  const [testimonies, setTestimonies] = useState<any[]>([])
+  const [articles, setArticles] = useState<any[]>([])
+  const [events, setEvents] = useState<any[]>([])
+
+  const { data: sermonData } = useQuery<any[]>({
+    queryKey: ['sermons', 'all'],
+  })
+  const { data: quoteData } = useQuery<any[]>({
+    queryKey: ['quotes', 'all'],
+  })
+  const { data: devotionalsData } = useQuery<any[]>({
+    queryKey: ['devotionals', 'all'],
+  })
+  const { data: testimonyData } = useQuery<any[]>({
+    queryKey: ['testimony', 'all'],
+  })
+
+  useEffect(() => { 
+  if (sermonData) {
+     setSermons(sermonData)
+  }
+  if (quoteData) {
+     setQuotes(quoteData)
+  }
+  if (devotionalsData) {
+     setDevotionals(devotionalsData)
+  }
+  if (testimonyData) {
+     setTestimonies(testimonyData)
+  }
+
+}, [sermonData, quoteData, devotionalsData, testimonyData])
+
 
   const stats = [
     { label: 'Sermons', count: sermons.length, icon: BookOpen, color: 'text-blue-600' },
