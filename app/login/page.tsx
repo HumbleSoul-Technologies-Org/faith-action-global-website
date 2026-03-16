@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -109,7 +110,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
+      <Card className="w-full relative max-w-md">
         <CardHeader>
           <CardTitle>Admin Login</CardTitle>
           <CardDescription>
@@ -163,6 +164,10 @@ export default function LoginPage() {
             </Button>
           </form>
         </CardContent>
+
+        <Link href="/" className="absolute top-3 right-4 text-sm text-primary hover:underline">
+          Back Home
+          </Link>Forgot
       </Card>
     </div>
   )
